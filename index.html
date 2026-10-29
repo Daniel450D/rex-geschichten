@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7cc6f2">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Rex Geschichten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Ein Bildschirm nach dem anderen: große Klötzchen-Knöpfe auf Himmelblau, Holzschilder für Überschriften */
+:root{
+  --sky:#7cc6f2; --sky-deep:#5aaee0; --wood:#8b5a2b; --wood-dark:#5e3a17;
+  --cream:#fff7e0; --ink:#2a1a0c; --grass:#5cb848; --grass-dark:#3f8a33;
+  --sun:#ffd23f; --go:#3fa34d; --go-dark:#2b7a36; --pick:#ffd23f; --muted:#6b4f33;
+  --display:'Lilita One','Arial Rounded MT Bold',system-ui,sans-serif;
+  --body:'Nunito',system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{margin:0}
+*{box-sizing:border-box}
+body{background:var(--sky);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 120px;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.1}
+.sign{background:var(--wood);border:6px solid var(--wood-dark);box-shadow:0 8px 0 var(--ink);padding:16px 20px;color:var(--cream);text-align:center;display:flex;flex-direction:column;gap:4px}
+.sign h1{font-size:clamp(40px,9vw,68px);text-shadow:4px 4px 0 var(--ink)}
+.sign p{margin:0;font-family:var(--display);color:var(--sun);font-size:clamp(18px,3.6vw,24px);letter-spacing:1px}
+.btn{font-family:var(--display);font-size:24px;color:var(--ink);background:var(--cream);border:4px solid var(--ink);border-radius:8px;box-shadow:0 6px 0 var(--ink);padding:14px 22px;min-height:64px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:12px;text-decoration:none;transition:transform .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
+.btn:focus-visible,.tile:focus-visible,.book:focus-visible,input:focus-visible{outline:5px solid var(--sun);outline-offset:3px}
+.btn svg{width:30px;height:30px;flex:none}
+.btn.go{background:var(--go);color:#fff;font-size:34px;min-height:88px;padding:16px 34px;text-shadow:2px 2px 0 var(--go-dark)}
+.btn.sun{background:var(--sun)}
+.btn.small{font-size:20px;min-height:54px;padding:10px 16px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.center{justify-content:center}
+.panel{background:var(--cream);border:4px solid var(--ink);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.panel h2{font-size:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.tile{position:relative;background:#fff;border:4px solid var(--ink);border-radius:10px;padding:8px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--display);font-size:19px;color:var(--ink);box-shadow:0 5px 0 var(--ink);min-height:44px}
+.tile canvas{width:100%;max-width:120px;aspect-ratio:1;height:auto;image-rendering:pixelated;border-radius:6px}
+.tile.place canvas{max-width:none;aspect-ratio:4/3}
+.tile[aria-pressed="true"]{background:var(--pick);transform:translateY(2px);box-shadow:0 3px 0 var(--ink)}
+.tile .tick{position:absolute;top:-12px;right:-12px;width:38px;height:38px;border-radius:50%;background:var(--go);border:4px solid var(--ink);display:none;align-items:center;justify-content:center}
+.tile[aria-pressed="true"] .tick{display:flex}
+.tick svg{width:20px;height:20px}
+label.big{font-family:var(--display);font-size:24px}
+.idea{width:100%;box-sizing:border-box;font:inherit;font-size:22px;padding:14px 16px;border:4px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink);min-height:64px}
+.hint{margin:0;color:var(--muted);font-size:16px}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.book{background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:var(--ink)}
+.book canvas{width:100%;height:auto;aspect-ratio:4/5;border:4px solid var(--ink);border-radius:6px;box-shadow:0 6px 0 var(--ink);image-rendering:pixelated;background:var(--sky-deep)}
+.book span{font-family:var(--display);font-size:18px;line-height:1.15}
+.story{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;align-items:start}
+@media (min-width:820px){.story{grid-template-columns:400px minmax(0,1fr)}.story .cover{position:sticky;top:max(16px,env(safe-area-inset-top,0px))}}
+.cover canvas{width:100%;max-width:440px;height:auto;aspect-ratio:4/5;border:5px solid var(--ink);border-radius:8px;box-shadow:0 8px 0 var(--ink);display:block;margin:0 auto;background:var(--sky-deep)}
+.text{background:var(--cream);border:4px solid var(--ink);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.text h2{font-size:clamp(30px,5vw,40px)}
+.text p{margin:0;font-size:21px;line-height:1.6;max-width:62ch;padding:4px 8px;border-radius:6px;transition:background .2s}
+.text p.now{background:var(--pick)}
+.text p.q{font-family:var(--display);font-size:22px;color:var(--wood-dark)}
+.wait{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-block:30px}
+.wait canvas{width:240px;height:240px;image-rendering:pixelated}
+.wait h2{font-size:clamp(28px,6vw,40px);color:var(--ink)}
+.wait p{margin:0;font-size:20px}
+.bob{animation:bob .6s steps(2) infinite}
+@keyframes bob{50%{transform:translateY(-10px)}}
+@media (prefers-reduced-motion:reduce){.bob{animation:none}.btn{transition:none}}
+.note{background:#fff;border:4px dashed var(--wood-dark);border-radius:10px;padding:14px 16px;margin:0;font-size:18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+
+<section id="home" aria-labelledby="t-home">
+  <div class="sign">
+    <p>Die Klötzchen-Abenteuer</p>
+    <h1 id="t-home">Rex Geschichten</h1>
+  </div>
+  <div class="row center" style="margin-top:22px">
+    <button class="btn go" id="b-new" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M12 4v16M4 12h16"/></svg>
+      Neue Geschichte
+    </button>
+    <button class="btn sun" id="b-surprise" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M11 2h2v5h-2zM11 17h2v5h-2zM2 11h5v2H2zM17 11h5v2h-5zM9 9h6v6H9z"/></svg>
+      Überrasch mich
+    </button>
+  </div>
+  <p class="note" id="no-ai" hidden style="margin-top:18px">Damit Rex neue Geschichten erfinden kann, müssen Mama oder Papa einmal unten bei „Für Eltern“ den Claude-Schlüssel eintragen. Die gespeicherten Geschichten kannst du schon lesen und hören.</p>
+  <div class="panel" style="margin-top:22px">
+    <h2>Meine Geschichten</h2>
+    <div class="shelf" id="shelf"></div>
+  </div>
+  <div class="row center" style="margin-top:30px"><button class="btn small" id="b-parents" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    Für Eltern</button></div>
+</section>
+
+<section id="ideas" hidden aria-labelledby="t-ideas">
+  <div class="row" style="justify-content:space-between">
+    <button class="btn small" type="button" data-home>
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"><path d="M15 5l-7 7 7 7"/></svg>
+      Zurück
+    </button>
+  </div>
+  <div class="sign" style="margin-top:18px"><h1 id="t-ideas" style="font-size:clamp(34px,7vw,52px)">Deine Idee</h1></div>
+  <div class="panel" style="margin-top:22px">
+    <h2>Wer spielt mit?</h2>
+    <div class="grid" id="chars"></div>
+  </div>
+  <div class="panel" style="margin-top:22px">
+    <h2>Wo spielt es?</h2>
+    <div class="grid" id="places"></div>
+  </div>
+  <div class="panel" style="margin-top:22px">
+    <label class="big" for="idea">Was soll passieren?</label>
+    <input class="idea" id="idea" type="text" autocomplete="off" placeholder="Rex findet einen Bananensaurus">
+    <p class="hint">Tipp für Mama und Papa: Auf Handy oder Tablet das Mikrofon auf der Tastatur antippen, dann kann Nick seine Idee einfach sagen. Das Feld darf auch leer bleiben.</p>
+  </div>
+  <div class="row center" style="margin-top:26px">
+    <button class="btn go" id="b-go" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M6 3l14 9-14 9z"/></svg>
+      Los geht's!
+    </button>
+  </div>
+</section>
+
+<section id="wait" hidden aria-live="polite">
+  <div class="wait">
+    <canvas id="wait-rex" width="240" height="240" class="bob" aria-hidden="true"></canvas>
+    <h2 id="wait-title">Rex denkt sich eine Geschichte aus</h2>
+    <p id="wait-msg">Das dauert ein kleines bisschen.</p>
+    <div class="row center" id="wait-actions" hidden>
+      <button class="btn sun" id="b-retry" type="button">Nochmal probieren</button>
+      <button class="btn" type="button" data-home>Zu meinen Geschichten</button>
+    </div>
+  </div>
+</section>
+
+<section id="parents" hidden aria-labelledby="t-parents">
+  <div class="row"><button class="btn small" type="button" data-home>Zurück</button></div>
+  <div class="panel" style="margin-top:18px" id="gate">
+    <h2 id="t-parents">Für Eltern</h2>
+    <label class="big" for="gate-in" id="gate-q"></label>
+    <input class="idea" id="gate-in" type="text" inputmode="numeric" autocomplete="off">
+    <button class="btn sun" id="gate-ok" type="button" style="align-self:flex-start">Weiter</button>
+  </div>
+  <div class="panel" style="margin-top:18px" id="settings" hidden>
+    <h2>Einstellungen</h2>
+    <label class="big" for="set-key">Claude API-Schlüssel</label>
+    <input class="idea" id="set-key" type="password" autocomplete="off" placeholder="sk-ant-...">
+    <p class="hint">Der Schlüssel wird nur in diesem Browser auf diesem Gerät gespeichert und geht direkt an Anthropic. Am besten einen eigenen Schlüssel nur für diese App anlegen und in der Claude Console ein kleines Monatslimit setzen.</p>
+    <label class="big" for="set-model">Modell</label>
+    <input class="idea" id="set-model" type="text" autocomplete="off">
+    <label class="big" for="set-name">Name des Kindes</label>
+    <input class="idea" id="set-name" type="text" autocomplete="off">
+    <div class="row">
+      <button class="btn go small" id="set-save" type="button">Speichern</button>
+      <button class="btn small" id="set-voice" type="button">Stimme testen</button>
+      <button class="btn small" id="set-del" type="button">Schlüssel löschen</button>
+    </div>
+    <p class="hint" id="set-msg" aria-live="polite"></p>
+  </div>
+</section>
+
+<section id="story" hidden aria-labelledby="s-title">
+  <div class="row" style="justify-content:space-between">
+    <button class="btn small" type="button" data-home>
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"><path d="M3 11l9-7 9 7M6 9v11h12V9"/></svg>
+      Meine Geschichten
+    </button>
+  </div>
+  <div class="story" style="margin-top:18px">
+    <div class="cover"><canvas id="cover" width="800" height="1000" role="img" aria-label="Cover der Geschichte"></canvas></div>
+    <div class="text">
+      <button class="btn go" id="b-read" type="button" style="align-self:flex-start">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" id="read-icon"><path d="M6 3l14 9-14 9z"/></svg>
+        <span id="read-label">Vorlesen</span>
+      </button>
+      <p class="note" id="read-help" hidden>Man hört nichts? Am iPhone oder iPad den Lautlos-Schalter ausmachen und lauter stellen. Am Android-Handy unter Einstellungen bei Sprachausgabe eine deutsche Stimme laden. Dann nochmal auf Vorlesen tippen.</p>
+      <h2 id="s-title"></h2>
+      <div id="s-body" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn sun" id="b-next" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4 5l9 7-9 7zM12 5l9 7-9 7z"/></svg>
+          Wie geht es weiter?
+        </button>
+        <button class="btn" id="b-new2" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M12 4v16M4 12h16"/></svg>
+          Neue Geschichte
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Farben ---------- */
+function hexOk(h,d){return /^#[0-9a-f]{6}$/i.test(String(h||''))?h:d}
+function mix(hex,t){ // t>0 heller, t<0 dunkler
+  const n=parseInt(hex.slice(1),16);let r=n>>16&255,g=n>>8&255,b=n&255;
+  const m=t>0?255:0,a=Math.abs(t);
+  r=Math.round(r+(m-r)*a);g=Math.round(g+(m-g)*a);b=Math.round(b+(m-b)*a);
+  return '#'+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
+}
+function rng(seed){let s=seed>>>0;return function(){s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- Pixel-Figuren ---------- */
+const BLK='#1b1b1b',WH='#ffffff';
+const T_REX=[[1,12,6,3,'D'],[0,11,2,2,'D'],[6,10,10,8,'B'],[12,3,10,7,'B'],[14,10,8,2,'L'],[18,5,2,2,WH],[19,5,1,1,BLK],[15,8,7,1,'K'],[16,8,1,1,WH],[18,8,1,1,WH],[20,8,1,1,WH],[14,4,2,1,'D'],[8,12,2,2,'D'],[11,15,2,1,'D'],[16,12,3,1,'B'],[18,13,1,1,'B'],[7,18,3,4,'D'],[12,18,3,4,'D'],[7,21,4,1,'K'],[12,21,4,1,'K']];
+const T_DRACHE=[[2,11,3,2,'D'],[4,12,9,3,'B'],[14,1,6,2,'W'],[13,3,9,2,'W'],[12,5,11,5,'L'],[12,10,14,6,'B'],[14,14,10,2,'P'],[24,7,4,5,'B'],[26,4,8,5,'B'],[33,6,3,3,'B'],[27,2,1,2,'A'],[29,2,1,2,'A'],[30,5,2,2,'A'],[31,5,1,1,'#1d1033'],[33,8,2,1,'#1d1033'],[14,16,2,2,'D'],[22,16,2,2,'D'],[16,10,2,1,'A'],[20,10,2,1,'A']];
+const T_LANG=[[0,15,5,2,'D'],[4,13,14,8,'B'],[15,5,3,9,'B'],[15,1,7,5,'B'],[6,15,2,2,'D'],[11,14,2,1,'D'],[9,18,2,1,'D'],[5,21,3,4,'D'],[14,21,3,4,'D'],[18,5,3,1,'K']];
+const T_KLEIN=[[0,8,2,2,'D'],[2,6,7,5,'B'],[5,1,6,5,'B'],[8,2,1,1,BLK],[8,4,2,1,BLK],[3,7,1,1,'K'],[5,9,1,1,'K'],[6,2,1,1,'K'],[7,8,1,1,'K'],[3,11,2,2,'D'],[7,11,2,2,'D']];
+const ROBOT=[[12,0,1,2,'#7b8794'],[11,0,3,1,'#3ba7ff'],[8,2,9,6,'#9aa5b1'],[10,4,2,2,'#3ba7ff'],[14,4,2,2,'#3ba7ff'],[10,7,6,1,'#3e4c59'],[0,12,4,2,'#7b8794'],[4,9,12,8,'#7b8794'],[7,11,6,4,'#3e4c59'],[8,12,1,1,'#3ba7ff'],[10,12,1,1,'#5cd65c'],[12,12,1,1,'#ffd23f'],[16,10,3,2,'#9aa5b1'],[5,17,3,5,'#9aa5b1'],[12,17,3,5,'#9aa5b1'],[4,22,5,1,'#3e4c59'],[11,22,5,1,'#3e4c59']];
+const FRIDGE=[[0,16,2,2,'#b9c7d3'],[3,0,2,2,'#8fd3ff'],[7,0,2,2,'#8fd3ff'],[11,0,2,2,'#8fd3ff'],[1,2,14,21,'#b9c7d3'],[2,3,12,19,'#f4f6f8'],[2,9,12,1,'#b9c7d3'],[12,4,1,3,'#8a99a6'],[12,11,1,4,'#8a99a6'],[4,4,2,2,BLK],[8,4,2,2,BLK],[5,7,4,1,BLK],[4,6,1,1,BLK],[9,6,1,1,BLK],[5,13,1,3,'#8fd3ff'],[4,14,3,1,'#8fd3ff'],[3,23,3,3,'#6f8191'],[10,23,3,3,'#6f8191']];
+const EGG=[[5,1,4,1,'#3b82f6'],[4,2,6,1,'#3b82f6'],[3,3,8,2,'#3b82f6'],[3,5,8,3,'#22c55e'],[3,8,8,3,'#a855f7'],[4,11,6,1,'#a855f7'],[5,12,4,1,'#a855f7'],[5,3,1,1,WH],[8,4,1,1,WH],[4,6,1,1,WH],[9,7,1,1,WH],[6,9,1,1,WH],[7,11,1,1,WH]];
+const CHEST=[[0,4,14,7,'#8b5a2b'],[0,1,14,3,'#a86d34'],[0,4,14,1,'#5e3a17'],[6,3,2,3,'#ffd23f'],[2,0,3,1,'#ffd23f'],[9,0,3,1,'#4fd6ff'],[6,0,2,1,'#e64a3b'],[0,10,14,1,'#5e3a17'],[1,6,1,1,'#ffd23f'],[12,7,1,1,'#ffd23f']];
+const DIAMOND=[[2,0,4,1,'#8ff0ff'],[1,1,6,1,'#4fd6ff'],[0,2,8,1,'#4fd6ff'],[1,3,6,1,'#2bb3e0'],[2,4,4,1,'#2bb3e0'],[3,5,2,1,'#1d8fb8'],[2,1,1,1,WH]];
+const PUMPKIN=[[4,0,2,2,'#4e8f30'],[1,2,8,7,'#f28c28'],[0,3,10,5,'#f28c28'],[3,2,1,7,'#d9701a'],[6,2,1,7,'#d9701a'],[2,4,1,1,'#ffb35c']];
+const ROCKET=[[2,2,4,10,'#e9edf2'],[3,0,2,2,'#e64a3b'],[2,2,4,1,'#e64a3b'],[3,5,2,2,'#3ba7ff'],[0,9,2,4,'#e64a3b'],[6,9,2,4,'#e64a3b'],[3,12,2,2,'#ffd23f'],[3,14,2,2,'#f28c28']];
+const STAR=[[4,0,1,9,'#ffd23f'],[0,4,9,1,'#ffd23f'],[3,1,3,7,'#ffd23f'],[1,3,7,3,'#ffd23f'],[4,4,1,1,'#fff6b0']];
+const CASTLE=[[4,14,32,16,'#efe6d2'],[4,14,32,1,'#d4c6a6'],[4,12,2,2,'#efe6d2'],[9,12,2,2,'#efe6d2'],[14,12,2,2,'#efe6d2'],[24,12,2,2,'#efe6d2'],[29,12,2,2,'#efe6d2'],[34,12,2,2,'#efe6d2'],[0,8,6,22,'#e3d7bd'],[0,6,2,2,'#e3d7bd'],[4,6,2,2,'#e3d7bd'],[34,8,6,22,'#e3d7bd'],[34,6,2,2,'#e3d7bd'],[38,6,2,2,'#e3d7bd'],[16,2,8,28,'#e3d7bd'],[16,0,2,2,'#e3d7bd'],[22,0,2,2,'#e3d7bd'],[19,5,2,3,'#3b2f2f'],[2,12,2,2,'#3b2f2f'],[36,12,2,2,'#3b2f2f'],[9,18,2,3,'#3b2f2f'],[29,18,2,3,'#3b2f2f'],[17,22,6,8,'#6b4524'],[19,21,2,1,'#6b4524'],[6,24,4,1,WH],[5,23,1,1,WH],[5,25,1,1,WH],[10,23,1,1,WH],[10,25,1,1,WH],[30,24,4,1,WH],[29,23,1,1,WH],[29,25,1,1,WH],[34,23,1,1,WH],[34,25,1,1,WH]];
+
+function palFor(form,b,a){
+  b=hexOk(b,'#5fa85a');a=hexOk(a,'#ffd23f');
+  if(form==='drache')return{B:b,D:mix(b,-.2),W:mix(b,.25),L:mix(b,.4),P:mix(b,.6),A:a};
+  return{B:b,D:mix(b,-.18),L:mix(b,.25),K:mix(b,-.45)};
+}
+const FORMS={trex:{r:T_REX,w:24,h:23},drache:{r:T_DRACHE,w:37,h:18,fly:true},langhals:{r:T_LANG,w:23,h:25},klein:{r:T_KLEIN,w:12,h:13}};
+
+const CAST={
+  rex:{name:'Rex',desc:'ein netter grüner Dino, mutig und hilfsbereit, lacht gern laut',w:24,h:23,r:T_REX.concat([[9,11,2,1,'#c89b5a'],[9,12,1,1,'#c89b5a']]),pal:{B:'#5fa85a',D:'#4a8f45',L:'#7cc276',K:'#2e5a2b'}},
+  nico:{name:'Nico',desc:'ein großer lila Drache, der toll fliegen kann und alle auf seinem Rücken trägt',w:37,h:18,fly:true,r:T_DRACHE,pal:palFor('drache','#8a5bd6','#ffd23f')},
+  robot:{name:'Robo-Dino',desc:'ein Roboter-Dino aus Eisen mit blauen Augen, sagt immer Biep biep',w:20,h:23,r:ROBOT,pal:{}},
+  kuehli:{name:'Mr. Kühlschrank',desc:'Mr. Kühlschranksaurus, ein Kühlschrank-Dino, der eiskalte Luft pusten kann und immer Eis dabei hat',w:16,h:26,r:FRIDGE,pal:{}},
+  zombie:{name:'Zombie-Dino',desc:'ein ganz lieber Zombie-Dino mit Sonnenbrille, der Sonne nicht mag und sehr stark ist',w:23,h:25,r:T_LANG.concat([[16,2,6,2,BLK],[17,4,2,1,BLK],[20,4,2,1,BLK]]),pal:{B:'#4f8f6e',D:'#3f7a5b',K:'#2c4d3b'}},
+  eierlein:{name:'Eierlein',desc:'ein kleiner grüner Dino mit Punkten und einer Diamantkette, neugierig und mutig',w:12,h:13,r:T_KLEIN.concat([[5,6,3,1,'#e3d7bd'],[6,7,1,1,'#4fd6ff']]),pal:{B:'#8fd16a',D:'#6fb34d',K:'#4e8f30'}}
+};
+const ITEMS={ei:{r:EGG,w:14,h:13,y0:1},schatz:{r:CHEST,w:14,h:11},diamant:{r:DIAMOND,w:8,h:6},kuerbis:{r:PUMPKIN,w:10,h:9},rakete:{r:ROCKET,w:8,h:16},stern:{r:STAR,w:9,h:9}};
+const PLACES={wiese:'Blumenwiese',vulkan:'Vulkan',meer:'Meer',dschungel:'Dschungel',schnee:'Schnee',weltall:'Weltall',hoehle:'Höhle',schloss:'Knochenschloss'};
+
+function drawRects(ctx,rects,pal,x,y,u,flip,w){
+  for(const q of rects){
+    const c=q[4][0]==='#'?q[4]:(pal[q[4]]||'#888');
+    ctx.fillStyle=c;
+    const qx=flip?(w-q[0]-q[2]):q[0];
+    ctx.fillRect(Math.round(x+qx*u),Math.round(y+q[1]*u),Math.ceil(q[2]*u),Math.ceil(q[3]*u));
+  }
+}
+function resolveFig(f){
+  if(typeof f==='string'&&CAST[f])return CAST[f];
+  if(f&&typeof f==='object'){
+    const form=FORMS[f.form]?f.form:'trex';const F=FORMS[form];
+    return{w:F.w,h:F.h,fly:!!F.fly,r:F.r,pal:palFor(form,f.farbe,f.akzent)};
+  }
+  return null;
+}
+
+/* ---------- Szenen ---------- */
+function block(ctx,x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
+function cloud(ctx,x,y,b){block(ctx,x+b*2,y,b*5,b*2,'#ffffff');block(ctx,x,y+b*2,b*9,b*2,'#ffffff')}
+function drawScene(ctx,W,H,scene,night,seed){
+  const R=rng(seed||7),b=Math.max(3,Math.round(W/40)),G=Math.round(H*.80);
+  const skyDay={wiese:'#7cc6f2',vulkan:'#f2a65a',meer:'#6ec3f0',dschungel:'#8fd3c7',schnee:'#b9dcf2',weltall:'#141a3a',hoehle:'#3a2a24',schloss:'#7cc6f2'};
+  const ground={wiese:'#5cb848',vulkan:'#6b4a3a',meer:'#f2d48a',dschungel:'#3f9a3a',schnee:'#f4f8fb',weltall:'#8d93a6',hoehle:'#5a4034',schloss:'#5cb848'};
+  const sky=(night&&scene!=='hoehle'&&scene!=='weltall')?'#1d2a5c':(skyDay[scene]||'#7cc6f2');
+  block(ctx,0,0,W,H,sky);
+  const open=scene!=='hoehle';
+  if(open&&(night||scene==='weltall')){for(let i=0;i<40;i++)block(ctx,R()*W,R()*G*.9,b*(R()<.2?1:.5),b*(R()<.2?1:.5),'#fff6c8')}
+  if(open&&scene!=='weltall'){
+    if(night){block(ctx,W*.78,H*.25,b*4,b*4,'#f4f1d0');block(ctx,W*.78+b*2.5,H*.25,b*1.5,b*2,sky)}
+    else{const sx=W*.8,sy=H*.25;block(ctx,sx,sy,b*4,b*4,'#ffd23f');block(ctx,sx+b,sy+b,b*2,b*2,'#ffe680');block(ctx,sx+b*1.5,sy-b,b,b*.8,'#ffd23f');block(ctx,sx+b*1.5,sy+b*4.2,b,b*.8,'#ffd23f');block(ctx,sx-b,sy+b*1.5,b*.8,b,'#ffd23f');block(ctx,sx+b*4.2,sy+b*1.5,b*.8,b,'#ffd23f')}
+    if(!night){cloud(ctx,W*.05,H*.33,b);cloud(ctx,W*.55,H*.4,b*.8)}
+  }
+  if(scene==='vulkan'){
+    const cx=W*.62,top=H*.40,rows=Math.floor((G-top)/b);
+    for(let i=0;i<rows;i++){const hw=W*.08+i*b*.75;block(ctx,cx-hw,top+i*b,hw*2,b+1,i%3===0?'#5e4436':'#7a5a48')}
+    block(ctx,cx-W*.07,top-b,W*.14,b*1.4,'#ff7a1a');block(ctx,cx-W*.03,top,b,b*4,'#ff7a1a');block(ctx,cx+W*.03,top,b,b*6,'#ff9a3a');
+    for(let i=0;i<4;i++)block(ctx,cx-b*2+i*b*1.2,top-b*(3+i*2),b*(2+i*.5),b*1.6,'#c9c2bd');
+  }
+  if(scene==='meer'){
+    block(ctx,0,H*.6,W,G-H*.6,'#2f8fd8');
+    for(let i=0;i<10;i++)block(ctx,R()*W,H*.6+R()*(G-H*.6-b),b*3,b*.5,'#7cc6f2');
+    const ix=W*.68;block(ctx,ix,H*.6-b*2,W*.26,b*2,'#f2d48a');block(ctx,ix+b*3,H*.6-b*9,b,b*7,'#8b5a2b');
+    block(ctx,ix,H*.6-b*10,b*7,b*1.5,'#3f9a3a');block(ctx,ix+b*1,H*.6-b*11,b*5,b,'#3f9a3a');
+  }
+  if(scene==='dschungel'){
+    const xs=[.02,.26,.62,.86];for(const t of xs){const x=W*t;block(ctx,x+b*2,H*.42,b*2,G-H*.42,'#6b4524');block(ctx,x-b,H*.3,b*8,b*5,'#2f7d32');block(ctx,x,H*.26,b*6,b*2,'#3a9a3d');block(ctx,x+b*5,H*.38,b*.5,b*9,'#4e9d3e')}
+    for(let i=0;i<6;i++)block(ctx,R()*W,G-b*2,b*2,b*2,'#2f7d32');
+  }
+  if(scene==='schnee'){
+    for(const t of [.06,.3,.7]){const x=W*t;for(let i=0;i<5;i++){block(ctx,x+(4-i)*b*.6,H*.5+i*b*2,b*(2+i*1.2),b*2,'#2f6b4a');block(ctx,x+(4-i)*b*.6,H*.5+i*b*2,b*(2+i*1.2),b*.5,'#ffffff')}block(ctx,x+b*3,H*.5+b*10,b*1.4,b*3,'#6b4524')}
+    for(let i=0;i<60;i++)block(ctx,R()*W,R()*H,b*.5,b*.5,'#ffffff');
+  }
+  if(scene==='weltall'){
+    const px=W*.12,py=H*.32;block(ctx,px,py,b*7,b*7,'#f28c28');block(ctx,px+b,py-b,b*5,b*9,'#f28c28');block(ctx,px-b*2,py+b*3,b*11,b,'#ffd23f');block(ctx,px+b*2,py+b,b*2,b*2,'#ffb35c');
+  }
+  if(scene==='hoehle'){
+    for(let i=0;i<14;i++){const x=i*W/13;block(ctx,x,0,b*2,b*(2+(i%3)*2),'#24170f')}
+    const cols=['#a855f7','#4fd6ff','#22c55e'];for(let i=0;i<7;i++){const x=R()*W,y=H*.25+R()*H*.4,c=cols[i%3];block(ctx,x,y,b,b*3,c);block(ctx,x+b,y+b,b,b*2,mix(c,.3))}
+  }
+  if(scene==='schloss'){const u=W*.5/40;drawRects(ctx,CASTLE,{},W*.47,G-30*u,u,false,40)}
+  // Boden
+  const gc=ground[scene]||'#5cb848';block(ctx,0,G,W,H-G,gc);block(ctx,0,G,W,b*1.2,mix(gc,-.12));
+  for(let i=0;i<28;i++)block(ctx,R()*W,G+b*2+R()*(H-G-b*3),b,b,mix(gc,R()<.5?-.08:.08));
+  if(scene==='wiese'||scene==='schloss'){const fc=['#ffd23f','#ff6fa1','#ffffff'];for(let i=0;i<10;i++){const x=R()*W;block(ctx,x,G-b,b*.8,b*.8,fc[i%3])}}
+  return G;
+}
+
+function drawCast(ctx,W,H,G,figs,items){
+  const list=(figs||[]).map(resolveFig).filter(Boolean).slice(0,7);
+  const fly=list.filter(f=>f.fly).slice(0,2),walk=list.filter(f=>!f.fly);
+  fly.forEach((f,i)=>{const u=W*(fly.length>1?.32:.5)/f.w;drawRects(ctx,f.r,f.pal,i===0?W*.04:W*.52,H*(i===0?.33:.42),u,i===1,f.w)});
+  if(walk.length){
+    const sumW=walk.reduce((s,f)=>s+f.w,0)+2*(walk.length-1),maxH=Math.max(...walk.map(f=>f.h));
+    const u=Math.min(H*.3/maxH,(W*.94)/sumW);let x=(W-sumW*u)/2;const base=G+W*.025;
+    walk.forEach(f=>{drawRects(ctx,f.r,f.pal,x,base-f.h*u,u,false,f.w);x+=(f.w+2)*u});
+  }
+  const its=(items||[]).filter(k=>ITEMS[k]).slice(0,2);
+  its.forEach((k,i)=>{const it=ITEMS[k];const u=W*.13/it.w;const x=i===0?W*.06:W*.94-it.w*u;drawRects(ctx,it.r,{},x,H-W*.03-(it.h+(it.y0||0))*u,u,false,it.w)});
+}
+
+function wrapLines(ctx,text,maxW){const words=String(text).split(/\s+/);const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}if(cur)lines.push(cur);return lines}
+function drawSign(ctx,W,title){
+  const pad=W*.035,x=W*.05,w=W*.9,y=W*.035;
+  let fs=W*.085,lines;
+  for(;;){ctx.font=fs+'px "Lilita One","Arial Rounded MT Bold",sans-serif';lines=wrapLines(ctx,title,w-pad*2);if(lines.length<=3||fs<W*.05)break;fs*=.9}
+  const sub=W*.034,lh=fs*1.05,h=pad*2+sub*1.3+lines.length*lh;
+  block(ctx,x,y+W*.014,w,h,'#2a1a0c');block(ctx,x,y,w,h,'#5e3a17');block(ctx,x+W*.012,y+W*.012,w-W*.024,h-W*.024,'#8b5a2b');
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.font=sub+'px "Lilita One","Arial Rounded MT Bold",sans-serif';ctx.fillStyle='#ffe680';ctx.fillText(('EINE GESCHICHTE FÜR '+kid()).toUpperCase(),W/2,y+pad);
+  ctx.font=fs+'px "Lilita One","Arial Rounded MT Bold",sans-serif';
+  lines.forEach((l,i)=>{const ty=y+pad+sub*1.3+i*lh;ctx.fillStyle='#2a1a0c';ctx.fillText(l,W/2+fs*.06,ty+fs*.06);ctx.fillStyle='#fff7e0';ctx.fillText(l,W/2,ty)});
+}
+function drawCover(canvas,story){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,c=story.cover||{};
+  const G=drawScene(ctx,W,H,PLACES[c.ort]?c.ort:'wiese',!!c.nacht,story.seed||1);
+  drawCast(ctx,W,H,G,c.figuren&&c.figuren.length?c.figuren:['rex'],c.dinge);
+  drawSign(ctx,W,story.titel||'Rex');
+}
+
+/* ---------- Speicher ---------- */
+const KEY='rex-geschichten-v1';
+const SEED_STORY={id:'beispiel',seed:42,titel:'Die Dschungelinsel',absaetze:[
+ 'Eines Morgens fand Eierlein eine alte Schatzkarte. Darauf war eine Dschungelinsel mit einem großen roten Kreuz.',
+ 'Alle Freunde bauten zusammen ein Boot aus Holzklötzchen: Rex, Nico, der Robo-Dino, der Zombie-Dino, Mr. Kühlschranksaurus und Eierlein. Sie paddelten über das Meer, und Nico flog oben drüber und zeigte den Weg.',
+ 'Auf der Insel war ein dichter Dschungel mit Lianen und bunten Papageien. Die Freunde liefen bis zum roten Kreuz und buddelten. Plopp! Eine Schatztruhe!',
+ 'Darin glänzten Gold und Juwelen. Und ganz in der Mitte lag ein Ei, blau, grün und lila, mit weißen Punkten.',
+ '„Noch ein neuer Freund!“, rief Eierlein. Ganz vorsichtig nahmen sie das Ei mit nach Hause.'],
+ frage:'Was meinst du, wer schlüpft aus dem bunten Ei?',
+ cover:{ort:'dschungel',nacht:false,figuren:['nico','rex','robot','zombie','kuehli','eierlein'],dinge:['schatz','ei']},created:0};
+let stories=[];
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(Array.isArray(s))stories=s}catch(e){}if(!stories.length)stories=[SEED_STORY]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(stories.slice(0,40)))}catch(e){}}
+
+/* ---------- Ansichten ---------- */
+const $=id=>document.getElementById(id);
+const views=['home','ideas','wait','story','parents'];
+function show(v){stopRead();views.forEach(x=>$(x).hidden=x!==v);window.scrollTo(0,0)}
+function renderShelf(){
+  const shelf=$('shelf');shelf.textContent='';
+  stories.forEach(s=>{
+    const b=document.createElement('button');b.type='button';b.className='book';
+    const c=document.createElement('canvas');c.width=400;c.height=500;c.setAttribute('aria-hidden','true');drawCover(c,s);
+    const t=document.createElement('span');t.textContent=s.titel;
+    b.append(c,t);b.addEventListener('click',()=>openStory(s));shelf.append(b);
+  });
+}
+let current=null;
+function openStory(s){
+  current=s;show('story');
+  drawCover($('cover'),s);$('cover').setAttribute('aria-label','Cover: '+s.titel);
+  $('s-title').textContent=s.titel;
+  const body=$('s-body');body.textContent='';
+  s.absaetze.forEach(p=>{const el=document.createElement('p');el.textContent=p;body.append(el)});
+  if(s.frage){const q=document.createElement('p');q.className='q';q.textContent=s.frage;body.append(q)}
+  $('b-next').hidden=!hasKey();
+}
+
+/* ---------- Auswahl ---------- */
+const pick={chars:new Set(['rex']),place:null};
+const TICK='<span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="square"><path d="M4 12l5 5 11-11"/></svg></span>';
+function buildPickers(){
+  const cg=$('chars');
+  Object.keys(CAST).forEach(id=>{
+    const f=CAST[id];const b=document.createElement('button');b.type='button';b.className='tile';b.innerHTML=TICK;
+    const c=document.createElement('canvas');c.width=120;c.height=120;c.setAttribute('aria-hidden','true');
+    const ctx=c.getContext('2d');block(ctx,0,0,120,120,'#e6f4fc');block(ctx,0,96,120,24,'#bfe3a8');
+    const u=Math.min(100/f.w,84/f.h);drawRects(ctx,f.r,f.pal,(120-f.w*u)/2,100-f.h*u,u,false,f.w);
+    const n=document.createElement('span');n.textContent=f.name;b.append(c,n);
+    const sync=()=>b.setAttribute('aria-pressed',pick.chars.has(id)?'true':'false');sync();
+    b.addEventListener('click',()=>{pick.chars.has(id)?pick.chars.delete(id):pick.chars.add(id);sync()});cg.append(b);
+  });
+  const pg=$('places');const btns=[];
+  Object.keys(PLACES).forEach(id=>{
+    const b=document.createElement('button');b.type='button';b.className='tile place';b.innerHTML=TICK;
+    const c=document.createElement('canvas');c.width=200;c.height=150;c.setAttribute('aria-hidden','true');drawScene(c.getContext('2d'),200,150,id,false,3);
+    const n=document.createElement('span');n.textContent=PLACES[id];b.append(c,n);b.setAttribute('aria-pressed','false');
+    b.addEventListener('click',()=>{pick.place=pick.place===id?null:id;btns.forEach(([i,el])=>el.setAttribute('aria-pressed',pick.place===i?'true':'false'))});
+    btns.push([id,b]);pg.append(b);
+  });
+}
+
+/* ---------- Claude ---------- */
+let lastReq=null;
+const CFG='rex-einstellungen-v1';
+function cfg(){try{return JSON.parse(localStorage.getItem(CFG)||'{}')}catch(e){return{}}}
+function setCfg(c){try{localStorage.setItem(CFG,JSON.stringify(c))}catch(e){}}
+function hasKey(){return !!cfg().key}
+function kid(){return (cfg().name||'Nick').trim()||'Nick'}
+async function askClaude(prompt){
+  const c=cfg();
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':c.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:c.model||'claude-sonnet-5-5',max_tokens:3000,messages:[{role:'user',content:prompt}]})});
+  if(!r.ok){const code=r.status===401?'bad_key':r.status===429?'rate_limited':r.status===400||r.status===404?'bad_model':'upstream';throw{code}}
+  const d=await r.json();const t=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  try{return JSON.parse(t)}catch(e){const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw{code:'invalid_json'};try{return JSON.parse(t.slice(a,b+1))}catch(e2){throw{code:'invalid_json'}}}
+}
+function figurList(){return Object.keys(CAST).map(id=>'- "'+id+'": '+CAST[id].name+', '+CAST[id].desc).join('\n')}
+function buildPrompt(req){
+  const who=req.chars.length?req.chars.map(id=>CAST[id].name).join(', '):'du darfst die Freunde frei wählen';
+  let p='Du erfindest Geschichten für '+kid()+', einen sechsjährigen Jungen. Die Geschichte wird ihm vorgelesen.\n\n'+
+  'Regeln:\n- Deutsch, einfache und kurze Sätze, die ein Sechsjähriger versteht.\n- Lustig, warm und spannend, aber nie gruselig, brutal oder traurig am Ende. Probleme werden mit Mut, Ideen, Freundschaft und Hilfsbereitschaft gelöst. Wenn eine Idee unheimlich klingt, mach sie freundlich.\n- Gern Geräusche wie Wusch!, Plopp! oder Biep biep!\n- 250 bis 380 Wörter, 6 bis 9 kurze Absätze.\n- Benutze keine Gedankenstriche (keine Zeichen – oder —).\n- Die Welt ist eine bunte Klötzchenwelt, in der man alles bauen kann.\n\n'+
+  'Die bekannten Freunde (Schlüssel in Anführungszeichen):\n'+figurList()+'\n\n'+
+  'Mitspielen sollen: '+who+'.\n'+
+  'Ort: '+(req.place?PLACES[req.place]:'such dir einen passenden Ort aus')+'.\n'+
+  kid()+'s Idee: '+(req.idea?'"'+req.idea.slice(0,400)+'"':'keine, überrasche ihn mit einer schönen Idee')+'\n';
+  if(req.prev){p+='\nDas ist der nächste Teil einer Serie. Der letzte Teil hieß "'+req.prev.titel+'" und ging so:\n'+req.prev.absaetze.join('\n').slice(0,4000)+'\nErzähle, wie es weitergeht, mit denselben Freunden.\n'}
+  p+='\nAntworte nur mit einem JSON-Objekt in genau dieser Form:\n'+
+  '{"titel":"kurzer Titel","absaetze":["Absatz 1","Absatz 2"],"frage":"eine kurze, fröhliche Frage an '+kid()+' zum Schluss","cover":{"ort":"wiese|vulkan|meer|dschungel|schnee|weltall|hoehle|schloss","nacht":false,"figuren":["rex"],"dinge":["ei"]}}\n'+
+  'Zum Cover: "ort" ist einer der acht Werte. "nacht" ist true, wenn die Geschichte nachts spielt. "figuren" nennt die wichtigsten Figuren, höchstens 6: die bekannten mit ihrem Schlüssel, neue Figuren als Objekt {"name":"Bananensaurus","form":"trex|langhals|drache|klein","farbe":"#rrggbb","akzent":"#rrggbb"} mit passender Farbe. Figuren aus Spielen, Filmen oder Serien zeichnest du als eigenen, neuen Dino in passender Farbe. "dinge" sind höchstens 2 aus: ei, schatz, diamant, kuerbis, rakete, stern (oder eine leere Liste).';
+  return p;
+}
+function clean(out,req){
+  if(!out||typeof out!=='object')throw{code:'invalid_json'};
+  const abs=Array.isArray(out.absaetze)?out.absaetze.map(s=>String(s).replace(/\s[–—]\s/g,', ').replace(/[–—]/g,', ')).filter(s=>s.trim()):[];
+  if(!abs.length)throw{code:'invalid_json'};
+  const c=out.cover||{};
+  const figs=(Array.isArray(c.figuren)?c.figuren:[]).map(f=>typeof f==='string'?(CAST[f]?f:null):(f&&typeof f==='object'?{name:String(f.name||''),form:FORMS[f.form]?f.form:'trex',farbe:hexOk(f.farbe,'#5fa85a'),akzent:hexOk(f.akzent,'#ffd23f')}:null)).filter(Boolean).slice(0,6);
+  return{id:String(Date.now()),seed:(Math.random()*1e9)|0,created:Date.now(),
+    titel:String(out.titel||'Ein neues Abenteuer').slice(0,80),absaetze:abs,frage:out.frage?String(out.frage):'',
+    cover:{ort:PLACES[c.ort]?c.ort:(req.place||'wiese'),nacht:!!c.nacht,figuren:figs.length?figs:(req.chars.length?req.chars:['rex']),dinge:(Array.isArray(c.dinge)?c.dinge:[]).filter(k=>ITEMS[k]).slice(0,2)}};
+}
+const MSG={bad_key:'Der Claude-Schlüssel stimmt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',bad_model:'Das Modell passt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',rate_limited:'Rex braucht eine kleine Pause. Probier es gleich nochmal.',not_granted:'Mama oder Papa müssen erst erlauben, dass Rex Geschichten erfinden darf.',sampling_disabled:'Geschichten erfinden ist gerade nicht möglich.',session_expired:'Mama oder Papa müssen sich bei Claude neu anmelden.',refused:'Zu dieser Idee fällt Rex nichts ein. Probier eine andere Idee!',invalid_json:'Huch, da ist etwas durcheinander gekommen. Probier es nochmal.'};
+async function generate(req){
+  if(!hasKey()){show('home');return}
+  lastReq=req;show('wait');
+  $('wait-title').textContent=req.prev?'Rex denkt sich den nächsten Teil aus':'Rex denkt sich eine Geschichte aus';
+  $('wait-msg').textContent='Das dauert ein kleines bisschen.';$('wait-actions').hidden=true;$('wait-rex').classList.add('bob');
+  try{
+    const out=await askClaude(buildPrompt(req));
+    const s=clean(out,req);stories.unshift(s);save();renderShelf();openStory(s);
+  }catch(e){
+    const code=e&&e.code;if(code==='cancelled')return;
+    $('wait-rex').classList.remove('bob');$('wait-title').textContent='Oh, das hat nicht geklappt';
+    $('wait-msg').textContent=MSG[code]||'Da ist etwas schiefgegangen. Probier es nochmal.';
+    $('b-retry').hidden=code==='bad_key'||code==='bad_model';$('wait-actions').hidden=false;
+  }
+}
+
+/* ---------- Vorlesen ---------- */
+const TTS='speechSynthesis' in window;let reading=false,voice=null;
+function pickVoice(){try{const v=speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang));voice=v.find(x=>/natural|neural|google|anna|petra|helena|katja/i.test(x.name))||v[0]||null}catch(e){}}
+if(TTS){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}}
+function setReadBtn(on){$('read-label').textContent=on?'Stopp':'Vorlesen';$('read-icon').innerHTML=on?'<path d="M5 5h14v14H5z"/>':'<path d="M6 3l14 9-14 9z"/>'}
+function mark(i){[...$('s-body').children].forEach((p,j)=>p.classList.toggle('now',j===i))}
+let keep=null,watch=null,started=false;
+function readHelp(show){const n=$('read-help');if(n)n.hidden=!show}
+function stopRead(){reading=false;clearInterval(keep);clearTimeout(watch);if(TTS)try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel()}catch(e){}if($('read-label'))setReadBtn(false);if($('s-body'))mark(-1)}
+function startRead(){
+  if(!current||!TTS)return;
+  const wasBusy=speechSynthesis.speaking||speechSynthesis.pending;
+  if(wasBusy)speechSynthesis.cancel();
+  reading=true;started=false;setReadBtn(true);readHelp(false);pickVoice();
+  const parts=[current.titel].concat(current.absaetze,current.frage?[current.frage]:[]);
+  const go=()=>{
+    try{speechSynthesis.resume()}catch(e){}
+    parts.forEach((t,i)=>{
+      const u=new SpeechSynthesisUtterance(t);u.lang='de-DE';if(voice)u.voice=voice;u.rate=.9;u.pitch=1.05;u.volume=1;
+      u.onstart=()=>{started=true;if(!reading)return;mark(i-1);const el=$('s-body').children[i-1];if(el)el.scrollIntoView({block:'center',behavior:'smooth'})};
+      if(i===parts.length-1)u.onend=()=>{if(reading)stopRead()};
+      u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;stopRead();readHelp(true)};
+      speechSynthesis.speak(u);
+    });
+    keep=setInterval(()=>{try{if(speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();speechSynthesis.resume()}}catch(e){}},10000);
+    watch=setTimeout(()=>{if(reading&&!started){stopRead();readHelp(true)}},4000);
+  };
+  if(wasBusy)setTimeout(go,150);else go();
+}
+if(!TTS)$('b-read').hidden=true;
+$('b-read').addEventListener('click',()=>reading?stopRead():startRead());
+
+/* ---------- Knöpfe ---------- */
+document.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>show('home')));
+const openIdeas=()=>{$('idea').value='';show('ideas')};
+$('b-new').addEventListener('click',openIdeas);$('b-new2').addEventListener('click',openIdeas);
+$('b-go').addEventListener('click',()=>generate({chars:[...pick.chars],place:pick.place,idea:$('idea').value.trim()}));
+$('idea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('b-go').click()}});
+$('b-surprise').addEventListener('click',()=>{const ids=Object.keys(CAST).sort(()=>Math.random()-.5).slice(0,3);const pl=Object.keys(PLACES);generate({chars:ids.includes('rex')?ids:['rex'].concat(ids.slice(0,2)),place:pl[(Math.random()*pl.length)|0],idea:''})});
+$('b-next').addEventListener('click',()=>{if(!current)return;const ch=(current.cover.figuren||[]).filter(f=>typeof f==='string');generate({chars:ch.length?ch:['rex'],place:null,idea:'',prev:current})});
+$('b-retry').addEventListener('click',()=>{if(lastReq)generate(lastReq)});
+
+/* ---------- Eltern ---------- */
+let gateAns=0;
+function refreshKey(){const k=hasKey();$('b-new').disabled=!k;$('b-surprise').disabled=!k;$('b-new').hidden=!k;$('b-surprise').hidden=!k;$('no-ai').hidden=k}
+$('b-parents').addEventListener('click',()=>{const a=6+((Math.random()*6)|0),b=6+((Math.random()*4)|0);gateAns=a*b;$('gate-q').textContent='Was ist '+a+' mal '+b+'?';$('gate-in').value='';$('gate').hidden=false;$('settings').hidden=true;show('parents')});
+$('gate-ok').addEventListener('click',()=>{if(parseInt($('gate-in').value,10)===gateAns){const c=cfg();$('set-key').value=c.key||'';$('set-model').value=c.model||'claude-sonnet-5-5';$('set-name').value=c.name||'Nick';$('set-msg').textContent='';$('gate').hidden=true;$('settings').hidden=false}else{$('gate-q').textContent='Leider falsch. '+$('gate-q').textContent.replace(/^Leider falsch\. /,'')}});
+$('gate-in').addEventListener('keydown',e=>{if(e.key==='Enter')$('gate-ok').click()});
+$('set-save').addEventListener('click',()=>{setCfg({key:$('set-key').value.trim(),model:$('set-model').value.trim()||'claude-sonnet-5-5',name:$('set-name').value.trim()||'Nick'});refreshKey();$('set-msg').textContent='Gespeichert.'});
+$('set-del').addEventListener('click',()=>{const c=cfg();delete c.key;setCfg(c);$('set-key').value='';refreshKey();$('set-msg').textContent='Schlüssel gelöscht.'});
+$('set-voice').addEventListener('click',()=>{if(!TTS){$('set-msg').textContent='Dieser Browser kann nicht vorlesen.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Hallo '+kid()+', hier ist Rex!');u.lang='de-DE';pickVoice();if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u);$('set-msg').textContent=voice?'Stimme: '+voice.name:'Keine deutsche Stimme gefunden, es wird die Standardstimme benutzt.'});
+
+/* ---------- Start ---------- */
+const wr=$('wait-rex').getContext('2d');drawRects(wr,CAST.rex.r,CAST.rex.pal,0,4,10,false,24);
+load();buildPickers();renderShelf();
+$('b-new').disabled=true;$('b-surprise').disabled=true;
+if(document.fonts&&document.fonts.load){document.fonts.load('40px "Lilita One"').then(()=>{renderShelf();if(current&&!$('story').hidden)drawCover($('cover'),current)}).catch(()=>{})}
+(async()=>{
+  refreshKey();
+})();
+})();
+</script>
+</body>
+</html>
