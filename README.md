@@ -25,6 +25,9 @@ Reine Webseite ohne Server, gedacht für GitHub Pages.
 
 ## Gut zu wissen
 
+* **Spracheingabe:** Nick drückt auf den roten Mikrofon-Knopf und erzählt seine Idee. Der Browser fragt beim ersten Mal, ob das Mikrofon benutzt werden darf, das bitte einmal erlauben. Funktioniert in Safari (iPad, iPhone), Chrome und Edge, nicht in Firefox. Chrome und Edge schicken die Sprache zur Erkennung an Google beziehungsweise Microsoft, Safari an Apple.
+* **Modell:** Standard ist Claude Opus (`claude-opus-5-5`), änderbar im Eltern-Bereich.
+* **Vorlesestimme:** Im Eltern-Bereich lässt sich die Stimme des Geräts auswählen. Das Cover bleibt beim Vorlesen oben stehen.
 * Geschichten werden im Browser des Geräts gespeichert. Ein anderes Gerät hat ein eigenes Regal.
 * Vorlesen nutzt die Stimme des Geräts. Am iPhone oder iPad muss der Lautlos-Schalter aus sein. Schöne deutsche Stimmen gibt es unter iOS bei Einstellungen > Bedienungshilfen > Gesprochene Inhalte > Stimmen > Deutsch (zum Beispiel Anna, verbessert).
 * Die Regeln für kindgerechte Geschichten stehen in `index.html` in der Funktion `buildPrompt`.
