@@ -14,19 +14,21 @@ Reine Webseite ohne Server, gedacht für GitHub Pages.
 ## Einrichten auf Nicks Tablet
 
 1. Die Adresse in Safari oder Chrome öffnen.
-2. Unten auf **Für Eltern** tippen, die Rechenaufgabe lösen und den Claude API-Schlüssel eintragen. **Stimme testen** prüft das Vorlesen.
-3. Über das Teilen-Menü **Zum Home-Bildschirm** hinzufügen. Dann startet die App wie eine echte App mit Rex als Symbol.
+2. Über das Teilen-Menü **Zum Home-Bildschirm** hinzufügen. Dann startet die App wie eine echte App mit Rex als Symbol.
+3. Beim ersten Druck auf den Mikrofon-Knopf das Mikrofon erlauben. Fertig, ein Schlüssel muss nicht eingetragen werden.
 
-## Der API-Schlüssel
+## Der API-Schlüssel (Cloudflare Worker)
 
-* Anlegen unter https://console.anthropic.com bei API Keys. Am besten einen eigenen Schlüssel nur für diese App und ein kleines Monatslimit setzen.
-* Der Schlüssel steht **nicht** im Repository. Er wird nur im Browser des Geräts gespeichert, auf dem er eingetragen wurde, und geht von dort direkt an Anthropic.
-* Wer das Gerät in die Hand bekommt, könnte den Schlüssel auslesen. Deshalb das Limit. Über **Schlüssel löschen** ist er wieder weg, in der Console kann man ihn jederzeit sperren.
+* Die App fragt Claude nicht direkt, sondern über den Cloudflare Worker `rex-geschichten` (https://rex-geschichten.daniel-504.workers.dev). Der Code liegt in `worker/worker.js`.
+* Der Claude-Schlüssel liegt dort als Secret `ANTHROPIC_API_KEY`. Er steht weder im Repository noch auf einem Gerät.
+* Der Worker baut den Prompt selbst und antwortet nur dieser GitHub-Seite. Modell (`MODEL`), Tageslimit (`MAX_PER_DAY`, braucht ein KV-Binding `LIMITS`) und erlaubte Seiten (`ALLOWED_ORIGINS`) lassen sich unter Settings > Variables and Secrets ändern.
+* Schlüssel wechseln: in der Claude Console einen neuen anlegen, beim Worker das Secret ersetzen, den alten sperren.
+* Ohne Worker (Konstante `PROXY` in `index.html` leer) fällt die App auf einen Schlüssel im Eltern-Bereich zurück.
 
 ## Gut zu wissen
 
 * **Spracheingabe:** Nick drückt auf den roten Mikrofon-Knopf und erzählt seine Idee. Der Browser fragt beim ersten Mal, ob das Mikrofon benutzt werden darf, das bitte einmal erlauben. Funktioniert in Safari (iPad, iPhone), Chrome und Edge, nicht in Firefox. Chrome und Edge schicken die Sprache zur Erkennung an Google beziehungsweise Microsoft, Safari an Apple.
-* **Modell:** Standard ist Claude Opus (`claude-opus-5-5`), änderbar im Eltern-Bereich.
+* **Modell:** Claude Opus (`claude-opus-5-5`), eingestellt im Worker.
 * **Vorlesestimme:** Im Eltern-Bereich lässt sich die Stimme des Geräts auswählen. Das Cover bleibt beim Vorlesen oben stehen.
 * Geschichten werden im Browser des Geräts gespeichert. Ein anderes Gerät hat ein eigenes Regal.
 * Vorlesen nutzt die Stimme des Geräts. Am iPhone oder iPad muss der Lautlos-Schalter aus sein. Schöne deutsche Stimmen gibt es unter iOS bei Einstellungen > Bedienungshilfen > Gesprochene Inhalte > Stimmen > Deutsch (zum Beispiel Anna, verbessert).

@@ -178,10 +178,11 @@ label.big{font-family:var(--display);font-size:24px}
   </div>
   <div class="panel" style="margin-top:18px" id="settings" hidden>
     <h2>Einstellungen</h2>
-    <label class="big" for="set-key">Claude API-Schlüssel</label>
+    <p class="note" id="proxy-note" hidden>Der Claude-Schlüssel liegt sicher bei Cloudflare. Hier muss nichts eingetragen werden.</p>
+    <label class="big" for="set-key" id="set-key-label">Claude API-Schlüssel</label>
     <input class="idea" id="set-key" type="password" autocomplete="off" placeholder="sk-ant-...">
-    <p class="hint">Der Schlüssel wird nur in diesem Browser auf diesem Gerät gespeichert und geht direkt an Anthropic. Am besten einen eigenen Schlüssel nur für diese App anlegen und in der Claude Console ein kleines Monatslimit setzen.</p>
-    <label class="big" for="set-model">Modell</label>
+    <p class="hint" id="set-key-hint">Der Schlüssel wird nur in diesem Browser auf diesem Gerät gespeichert und geht direkt an Anthropic. Am besten einen eigenen Schlüssel nur für diese App anlegen und in der Claude Console ein kleines Monatslimit setzen.</p>
+    <label class="big" for="set-model" id="set-model-label">Modell</label>
     <input class="idea" id="set-model" type="text" autocomplete="off">
     <label class="big" for="set-voice-sel">Vorlesestimme</label>
     <select class="idea" id="set-voice-sel"></select>
@@ -442,11 +443,24 @@ function buildPickers(){
 
 /* ---------- Claude ---------- */
 let lastReq=null;
+/* Vermittler bei Cloudflare: hält den API-Schlüssel, die App braucht dann keinen */
+const PROXY='https://rex-geschichten.daniel-504.workers.dev';
 const CFG='rex-einstellungen-v1';
 function cfg(){let c={};try{c=JSON.parse(localStorage.getItem(CFG)||'{}')}catch(e){}if(!c.model||/sonnet/i.test(c.model))c.model='claude-opus-5-5';return c}
 function setCfg(c){try{localStorage.setItem(CFG,JSON.stringify(c))}catch(e){}}
-function hasKey(){return !!cfg().key}
+function hasKey(){return !!PROXY||!!cfg().key}
 function kid(){return (cfg().name||'Nick').trim()||'Nick'}
+async function askStory(req){
+  if(PROXY){
+    const prev=req.prev?{titel:req.prev.titel,absaetze:req.prev.absaetze}:null;
+    let r;try{r=await fetch(PROXY+'/story',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chars:req.chars,place:req.place,idea:req.idea,name:kid(),prev})})}catch(e){throw{code:'offline'}}
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw{code:d.error||'upstream'};
+    return parseStory(d.text||'');
+  }
+  return askClaude(buildPrompt(req));
+}
+function parseStory(t){try{return JSON.parse(t)}catch(e){const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw{code:'invalid_json'};try{return JSON.parse(t.slice(a,b+1))}catch(e2){throw{code:'invalid_json'}}}}
 async function askClaude(prompt){
   const c=cfg();
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':c.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -480,20 +494,20 @@ function clean(out,req){
     titel:String(out.titel||'Ein neues Abenteuer').slice(0,80),absaetze:abs,frage:out.frage?String(out.frage):'',
     cover:{ort:PLACES[c.ort]?c.ort:(req.place||'wiese'),nacht:!!c.nacht,figuren:figs.length?figs:(req.chars.length?req.chars:['rex']),dinge:(Array.isArray(c.dinge)?c.dinge:[]).filter(k=>ITEMS[k]).slice(0,2)}};
 }
-const MSG={bad_key:'Der Claude-Schlüssel stimmt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',bad_model:'Das Modell passt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',rate_limited:'Rex braucht eine kleine Pause. Probier es gleich nochmal.',not_granted:'Mama oder Papa müssen erst erlauben, dass Rex Geschichten erfinden darf.',sampling_disabled:'Geschichten erfinden ist gerade nicht möglich.',session_expired:'Mama oder Papa müssen sich bei Claude neu anmelden.',refused:'Zu dieser Idee fällt Rex nichts ein. Probier eine andere Idee!',invalid_json:'Huch, da ist etwas durcheinander gekommen. Probier es nochmal.'};
+const MSG={limit:'Für heute sind genug Geschichten erfunden. Morgen geht es weiter!',offline:'Rex ist gerade nicht erreichbar. Ist das Internet an?',no_key:'Bei Cloudflare fehlt noch der Claude-Schlüssel. Mama oder Papa schauen nach.',forbidden:'Diese Seite darf Rex nicht fragen.',bad_key:'Der Claude-Schlüssel stimmt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',bad_model:'Das Modell passt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',rate_limited:'Rex braucht eine kleine Pause. Probier es gleich nochmal.',not_granted:'Mama oder Papa müssen erst erlauben, dass Rex Geschichten erfinden darf.',sampling_disabled:'Geschichten erfinden ist gerade nicht möglich.',session_expired:'Mama oder Papa müssen sich bei Claude neu anmelden.',refused:'Zu dieser Idee fällt Rex nichts ein. Probier eine andere Idee!',invalid_json:'Huch, da ist etwas durcheinander gekommen. Probier es nochmal.'};
 async function generate(req){
   if(!hasKey()){show('home');return}
   lastReq=req;show('wait');
   $('wait-title').textContent=req.prev?'Rex denkt sich den nächsten Teil aus':'Rex denkt sich eine Geschichte aus';
   $('wait-msg').textContent='Das dauert ein kleines bisschen.';$('wait-actions').hidden=true;$('wait-rex').classList.add('bob');
   try{
-    const out=await askClaude(buildPrompt(req));
+    const out=await askStory(req);
     const s=clean(out,req);stories.unshift(s);save();renderShelf();openStory(s);
   }catch(e){
     const code=e&&e.code;if(code==='cancelled')return;
     $('wait-rex').classList.remove('bob');$('wait-title').textContent='Oh, das hat nicht geklappt';
     $('wait-msg').textContent=MSG[code]||'Da ist etwas schiefgegangen. Probier es nochmal.';
-    $('b-retry').hidden=code==='bad_key'||code==='bad_model';$('wait-actions').hidden=false;
+    $('b-retry').hidden=code==='bad_key'||code==='bad_model'||code==='limit'||code==='no_key'||code==='forbidden';$('wait-actions').hidden=false;
   }
 }
 
@@ -569,13 +583,14 @@ function fillVoices(){const sel=$('set-voice-sel');sel.textContent='';const v=de
 let gateAns=0;
 function refreshKey(){const k=hasKey();$('b-new').disabled=!k;$('b-surprise').disabled=!k;$('b-new').hidden=!k;$('b-surprise').hidden=!k;$('no-ai').hidden=k}
 $('b-parents').addEventListener('click',()=>{const a=6+((Math.random()*6)|0),b=6+((Math.random()*4)|0);gateAns=a*b;$('gate-q').textContent='Was ist '+a+' mal '+b+'?';$('gate-in').value='';$('gate').hidden=false;$('settings').hidden=true;show('parents')});
-$('gate-ok').addEventListener('click',()=>{if(parseInt($('gate-in').value,10)===gateAns){const c=cfg();$('set-key').value=c.key||'';$('set-model').value=c.model||'claude-opus-5-5';$('set-name').value=c.name||'Nick';fillVoices();$('set-msg').textContent='';$('gate').hidden=true;$('settings').hidden=false}else{$('gate-q').textContent='Leider falsch. '+$('gate-q').textContent.replace(/^Leider falsch\. /,'')}});
+$('gate-ok').addEventListener('click',()=>{if(parseInt($('gate-in').value,10)===gateAns){const c=cfg();$('set-key').value=c.key||'';$('set-model').value=c.model||'claude-opus-5-5';$('set-name').value=c.name||'Nick';fillVoices();$('proxy-note').hidden=!PROXY;['set-key','set-key-label','set-key-hint','set-del','set-model','set-model-label'].forEach(i=>$(i).hidden=!!PROXY);$('set-msg').textContent='';$('gate').hidden=true;$('settings').hidden=false}else{$('gate-q').textContent='Leider falsch. '+$('gate-q').textContent.replace(/^Leider falsch\. /,'')}});
 $('gate-in').addEventListener('keydown',e=>{if(e.key==='Enter')$('gate-ok').click()});
 $('set-save').addEventListener('click',()=>{setCfg({voice:$('set-voice-sel').value,key:$('set-key').value.trim(),model:$('set-model').value.trim()||'claude-opus-5-5',name:$('set-name').value.trim()||'Nick'});refreshKey();$('set-msg').textContent='Gespeichert.'});
 $('set-del').addEventListener('click',()=>{const c=cfg();delete c.key;setCfg(c);$('set-key').value='';refreshKey();$('set-msg').textContent='Schlüssel gelöscht.'});
 $('set-voice').addEventListener('click',()=>{if(!TTS){$('set-msg').textContent='Dieser Browser kann nicht vorlesen.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Hallo '+kid()+', hier ist Rex!');u.lang='de-DE';const want=$('set-voice-sel').value;pickVoice();const vs=deVoices().find(x=>x.name===want);if(vs)voice=vs;if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u);$('set-msg').textContent=voice?'Stimme: '+voice.name:'Keine deutsche Stimme gefunden, es wird die Standardstimme benutzt.'});
 
 /* ---------- Start ---------- */
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
 const wr=$('wait-rex').getContext('2d');drawRects(wr,CAST.rex.r,CAST.rex.pal,0,4,10,false,24);
 load();buildPickers();renderShelf();
 $('b-new').disabled=true;$('b-surprise').disabled=true;
