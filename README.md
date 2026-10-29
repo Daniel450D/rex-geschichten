@@ -27,9 +27,9 @@ Reine Webseite ohne Server, gedacht für GitHub Pages.
 
 ## Gut zu wissen
 
-* **Spracheingabe:** Nick drückt auf den roten Mikrofon-Knopf und erzählt seine Idee. Der Browser fragt beim ersten Mal, ob das Mikrofon benutzt werden darf, das bitte einmal erlauben. Funktioniert in Safari (iPad, iPhone), Chrome und Edge, nicht in Firefox. Chrome und Edge schicken die Sprache zur Erkennung an Google beziehungsweise Microsoft, Safari an Apple.
+* **Spracheingabe:** Nick drückt auf den roten Mikrofon-Knopf und erzählt. Die App nimmt selbst auf, hört nach 2 Sekunden Stille automatisch auf und schaltet das Mikrofon danach ganz ab. Den Text erzeugt Whisper über den Worker (Workers-AI-Binding `AI`). Ohne Worker fällt die App auf die Spracherkennung des Browsers zurück.
+* **Vorlesen:** Natürliche Stimmen von ElevenLabs über den Worker (Secret `ELEVENLABS_API_KEY`). Jeder Absatz wird einmal erzeugt und dann bei Cloudflare zwischengespeichert. Stimme wählbar im Eltern-Bereich, auch eine eigene Voice ID. Die Gerätestimme ist der Rückfall. Am iPhone muss der Lautlos-Schalter aus sein.
+* **Figuren:** Neue Figuren aus Geschichten werden gespeichert und sind danach bei „Wer spielt mit?“ auswählbar. Im Eltern-Bereich lassen sich Figuren umbenennen, beschreiben, umfärben, löschen oder (eingebaute) ausblenden.
+* **Geschichten:** im Eltern-Bereich löschbar. Geschichten und Figuren liegen im Browser des Geräts, ein anderes Gerät hat ein eigenes Regal.
 * **Modell:** Claude Opus (`claude-opus-5-5`), eingestellt im Worker.
-* **Vorlesestimme:** Im Eltern-Bereich lässt sich die Stimme des Geräts auswählen. Das Cover bleibt beim Vorlesen oben stehen.
-* Geschichten werden im Browser des Geräts gespeichert. Ein anderes Gerät hat ein eigenes Regal.
-* Vorlesen nutzt die Stimme des Geräts. Am iPhone oder iPad muss der Lautlos-Schalter aus sein. Schöne deutsche Stimmen gibt es unter iOS bei Einstellungen > Bedienungshilfen > Gesprochene Inhalte > Stimmen > Deutsch (zum Beispiel Anna, verbessert).
-* Die Regeln für kindgerechte Geschichten stehen in `index.html` in der Funktion `buildPrompt`.
+* Die Regeln für kindgerechte Geschichten stehen im Worker (`worker/worker.js`, Funktion `buildPrompt`).

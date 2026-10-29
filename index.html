@@ -74,6 +74,18 @@ label.big{font-family:var(--display);font-size:24px}
 .wait canvas{width:240px;height:240px;image-rendering:pixelated}
 .wait h2{font-size:clamp(28px,6vw,40px);color:var(--ink)}
 .wait p{margin:0;font-size:20px}
+.figrow{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;align-items:start;padding:12px;border:3px solid var(--ink);border-radius:10px;background:#fff}
+.figrow canvas{width:76px;height:76px;border-radius:6px;image-rendering:pixelated}
+.figrow .f{display:flex;flex-direction:column;gap:8px;min-width:0}
+.figrow .idea,.figrow select{font-size:18px;min-height:48px;padding:8px 12px}
+.figrow .two{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.figrow input[type=color]{width:64px;height:48px;border:3px solid var(--ink);border-radius:8px;padding:2px;background:#fff}
+.figrow.off{opacity:.6}
+.srow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px;border:3px solid var(--ink);border-radius:10px;background:#fff}
+.srow canvas{width:56px;height:70px;border-radius:4px;image-rendering:pixelated}
+.srow b{font-family:var(--display);font-weight:400;font-size:19px;display:block;overflow-wrap:anywhere}
+.srow small{color:var(--muted)}
+.btn.danger{background:#e64a3b;color:#fff}
 .mic-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .mic{width:128px;height:128px;flex:none;border-radius:50%;border:5px solid var(--ink);background:#e64a3b;color:#fff;box-shadow:0 7px 0 var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .mic svg{width:60px;height:60px}
@@ -186,7 +198,11 @@ label.big{font-family:var(--display);font-size:24px}
     <input class="idea" id="set-model" type="text" autocomplete="off">
     <label class="big" for="set-voice-sel">Vorlesestimme</label>
     <select class="idea" id="set-voice-sel"></select>
-    <p class="hint">Die Stimme kommt vom Gerät, nicht von Claude. Schönere Stimmen: am iPad unter Einstellungen > Bedienungshilfen > Gesprochene Inhalte > Stimmen > Deutsch eine Stimme mit „verbessert“ oder „Premium“ laden, am Computer Edge mit den „Online (Natural)“ Stimmen benutzen. Danach die Seite neu laden.</p>
+    <div id="own-voice-wrap" style="display:flex;flex-direction:column;gap:6px">
+      <label class="hint" for="set-own-voice">Eigene ElevenLabs-Stimme (Voice ID, zum Beispiel eine deutsche Stimme aus der Voice Library):</label>
+      <input class="idea" id="set-own-voice" type="text" autocomplete="off" placeholder="Voice ID">
+    </div>
+    <p class="hint">Die natürlichen Stimmen kommen von ElevenLabs über deinen Cloudflare Worker. Die Gerätestimme ist der Rückfall, falls ElevenLabs nicht erreichbar ist. Schönere Stimmen: am iPad unter Einstellungen > Bedienungshilfen > Gesprochene Inhalte > Stimmen > Deutsch eine Stimme mit „verbessert“ oder „Premium“ laden, am Computer Edge mit den „Online (Natural)“ Stimmen benutzen. Danach die Seite neu laden.</p>
     <label class="big" for="set-name">Name des Kindes</label>
     <input class="idea" id="set-name" type="text" autocomplete="off">
     <div class="row">
@@ -195,6 +211,16 @@ label.big{font-family:var(--display);font-size:24px}
       <button class="btn small" id="set-del" type="button">Schlüssel löschen</button>
     </div>
     <p class="hint" id="set-msg" aria-live="polite"></p>
+  </div>
+  <div class="panel" style="margin-top:18px" id="figs-panel" hidden>
+    <h2>Figuren</h2>
+    <p class="hint">Neue Figuren aus Nicks Geschichten landen hier automatisch und sind ab dann bei „Wer spielt mit?“ auswählbar. Eingebaute Figuren lassen sich umbenennen oder ausblenden.</p>
+    <div id="fig-list" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="row"><button class="btn small" id="fig-add" type="button">Neue Figur anlegen</button></div>
+  </div>
+  <div class="panel" style="margin-top:18px" id="stories-panel" hidden>
+    <h2>Geschichten</h2>
+    <div id="story-list" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
 </section>
 
@@ -287,8 +313,30 @@ function drawRects(ctx,rects,pal,x,y,u,flip,w){
     ctx.fillRect(Math.round(x+qx*u),Math.round(y+q[1]*u),Math.ceil(q[2]*u),Math.ceil(q[3]*u));
   }
 }
+/* Figuren: eingebaute (anpassbar, ausblendbar) und eigene von Nick */
+const FIGKEY='rex-figuren-v1';
+function figStore(){let d={};try{d=JSON.parse(localStorage.getItem(FIGKEY)||'{}')}catch(e){}if(!d||typeof d!=='object')d={};if(!d.builtin||typeof d.builtin!=='object')d.builtin={};if(!Array.isArray(d.custom))d.custom=[];return d}
+function saveFigs(d){try{localStorage.setItem(FIGKEY,JSON.stringify(d))}catch(e){}}
+function roster(all){
+  const d=figStore();const out=[];
+  Object.keys(CAST).forEach(id=>{const o=d.builtin[id]||{};if(o.hidden&&!all)return;out.push({id,builtin:true,hidden:!!o.hidden,name:o.name||CAST[id].name,desc:o.desc||CAST[id].desc})});
+  d.custom.forEach(c=>out.push({id:c.id,builtin:false,name:c.name,desc:c.desc||'',form:c.form,farbe:c.farbe,akzent:c.akzent}));
+  return out;
+}
+function customById(id){return figStore().custom.find(c=>c.id===id)||null}
+function figVisual(id){if(CAST[id])return CAST[id];const c=customById(id);return c?resolveFig({form:c.form,farbe:c.farbe,akzent:c.akzent}):null}
+function slug(n){return String(n).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,18)||'figur'}
+function addCustom(f){
+  const d=figStore();const nm=String(f.name||'').trim().slice(0,30);if(!nm)return null;
+  const key=nm.toLowerCase();
+  if(roster(true).some(r=>r.name.toLowerCase()===key))return null;
+  let id='c_'+slug(nm),i=2;while(CAST[id]||d.custom.some(c=>c.id===id))id='c_'+slug(nm)+i++;
+  d.custom.push({id,name:nm,desc:String(f.beschreibung||f.desc||'').trim().slice(0,160),form:FORMS[f.form]?f.form:'trex',farbe:hexOk(f.farbe,'#5fa85a'),akzent:hexOk(f.akzent,'#ffd23f')});
+  saveFigs(d);return id;
+}
 function resolveFig(f){
   if(typeof f==='string'&&CAST[f])return CAST[f];
+  if(typeof f==='string'){const c=customById(f);return c?resolveFig({form:c.form,farbe:c.farbe,akzent:c.akzent}):null}
   if(f&&typeof f==='object'){
     const form=FORMS[f.form]?f.form:'trex';const F=FORMS[form];
     return{w:F.w,h:F.h,fly:!!F.fly,r:F.r,pal:palFor(form,f.farbe,f.akzent)};
@@ -390,7 +438,7 @@ const SEED_STORY={id:'beispiel',seed:42,titel:'Die Dschungelinsel',absaetze:[
  frage:'Was meinst du, wer schlüpft aus dem bunten Ei?',
  cover:{ort:'dschungel',nacht:false,figuren:['nico','rex','robot','zombie','kuehli','eierlein'],dinge:['schatz','ei']},created:0};
 let stories=[];
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(Array.isArray(s))stories=s}catch(e){}if(!stories.length)stories=[SEED_STORY]}
+function load(){let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){}if(raw===null){stories=[SEED_STORY];return}try{const s=JSON.parse(raw);if(Array.isArray(s))stories=s}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(stories.slice(0,40)))}catch(e){}}
 
 /* ---------- Ansichten ---------- */
@@ -420,17 +468,26 @@ function openStory(s){
 /* ---------- Auswahl ---------- */
 const pick={chars:new Set(['rex']),place:null};
 const TICK='<span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="square"><path d="M4 12l5 5 11-11"/></svg></span>';
-function buildPickers(){
-  const cg=$('chars');
-  Object.keys(CAST).forEach(id=>{
-    const f=CAST[id];const b=document.createElement('button');b.type='button';b.className='tile';b.innerHTML=TICK;
-    const c=document.createElement('canvas');c.width=120;c.height=120;c.setAttribute('aria-hidden','true');
-    const ctx=c.getContext('2d');block(ctx,0,0,120,120,'#e6f4fc');block(ctx,0,96,120,24,'#bfe3a8');
-    const u=Math.min(100/f.w,84/f.h);drawRects(ctx,f.r,f.pal,(120-f.w*u)/2,100-f.h*u,u,false,f.w);
-    const n=document.createElement('span');n.textContent=f.name;b.append(c,n);
+function figCanvas(vis,size){
+  const c=document.createElement('canvas');c.width=size;c.height=size;c.setAttribute('aria-hidden','true');
+  const ctx=c.getContext('2d');block(ctx,0,0,size,size,'#e6f4fc');block(ctx,0,size*.8,size,size*.2,'#bfe3a8');
+  if(vis){const u=Math.min(size*.83/vis.w,size*.7/vis.h);drawRects(ctx,vis.r,vis.pal,(size-vis.w*u)/2,size*.83-vis.h*u,u,false,vis.w)}
+  return c;
+}
+function buildChars(){
+  const cg=$('chars');cg.textContent='';
+  const ros=roster();const ids=new Set(ros.map(r=>r.id));[...pick.chars].forEach(id=>{if(!ids.has(id))pick.chars.delete(id)});
+  ros.forEach(r=>{
+    const id=r.id,vis=figVisual(id);if(!vis)return;
+    const b=document.createElement('button');b.type='button';b.className='tile';b.innerHTML=TICK;
+    const c=figCanvas(vis,120);
+    const n=document.createElement('span');n.textContent=r.name;b.append(c,n);
     const sync=()=>b.setAttribute('aria-pressed',pick.chars.has(id)?'true':'false');sync();
     b.addEventListener('click',()=>{pick.chars.has(id)?pick.chars.delete(id):pick.chars.add(id);sync()});cg.append(b);
   });
+}
+function buildPickers(){
+  buildChars();
   const pg=$('places');const btns=[];
   Object.keys(PLACES).forEach(id=>{
     const b=document.createElement('button');b.type='button';b.className='tile place';b.innerHTML=TICK;
@@ -453,7 +510,7 @@ function kid(){return (cfg().name||'Nick').trim()||'Nick'}
 async function askStory(req){
   if(PROXY){
     const prev=req.prev?{titel:req.prev.titel,absaetze:req.prev.absaetze}:null;
-    let r;try{r=await fetch(PROXY+'/story',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chars:req.chars,place:req.place,idea:req.idea,name:kid(),prev})})}catch(e){throw{code:'offline'}}
+    let r;try{r=await fetch(PROXY+'/story',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chars:req.chars,place:req.place,idea:req.idea,name:kid(),prev,roster:roster().map(r=>({id:r.id,name:r.name,desc:r.desc}))})})}catch(e){throw{code:'offline'}}
     const d=await r.json().catch(()=>({}));
     if(!r.ok)throw{code:d.error||'upstream'};
     return parseStory(d.text||'');
@@ -469,9 +526,9 @@ async function askClaude(prompt){
   const d=await r.json();const t=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
   try{return JSON.parse(t)}catch(e){const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw{code:'invalid_json'};try{return JSON.parse(t.slice(a,b+1))}catch(e2){throw{code:'invalid_json'}}}
 }
-function figurList(){return Object.keys(CAST).map(id=>'- "'+id+'": '+CAST[id].name+', '+CAST[id].desc).join('\n')}
+function figurList(){return roster().map(r=>'- "'+r.id+'": '+r.name+(r.desc?', '+r.desc:'')).join('\n')}
 function buildPrompt(req){
-  const who=req.chars.length?req.chars.map(id=>CAST[id].name).join(', '):'du darfst die Freunde frei wählen';
+  const RN={};roster().forEach(r=>RN[r.id]=r.name);const who=req.chars.length?req.chars.map(id=>RN[id]).filter(Boolean).join(', '):'du darfst die Freunde frei wählen';
   let p='Du erfindest Geschichten für '+kid()+', einen sechsjährigen Jungen. Die Geschichte wird ihm vorgelesen.\n\n'+
   'Regeln:\n- Deutsch, einfache und kurze Sätze, die ein Sechsjähriger versteht.\n- Lustig, warm und spannend, aber nie gruselig, brutal oder traurig am Ende. Probleme werden mit Mut, Ideen, Freundschaft und Hilfsbereitschaft gelöst. Wenn eine Idee unheimlich klingt, mach sie freundlich.\n- Gern Geräusche wie Wusch!, Plopp! oder Biep biep!\n- 250 bis 380 Wörter, 6 bis 9 kurze Absätze.\n- Benutze keine Gedankenstriche (keine Zeichen – oder —).\n- Die Welt ist eine bunte Klötzchenwelt, in der man alles bauen kann.\n\n'+
   'Die bekannten Freunde (Schlüssel in Anführungszeichen):\n'+figurList()+'\n\n'+
@@ -481,7 +538,7 @@ function buildPrompt(req){
   if(req.prev){p+='\nDas ist der nächste Teil einer Serie. Der letzte Teil hieß "'+req.prev.titel+'" und ging so:\n'+req.prev.absaetze.join('\n').slice(0,4000)+'\nErzähle, wie es weitergeht, mit denselben Freunden.\n'}
   p+='\nAntworte nur mit einem JSON-Objekt in genau dieser Form:\n'+
   '{"titel":"kurzer Titel","absaetze":["Absatz 1","Absatz 2"],"frage":"eine kurze, fröhliche Frage an '+kid()+' zum Schluss","cover":{"ort":"wiese|vulkan|meer|dschungel|schnee|weltall|hoehle|schloss","nacht":false,"figuren":["rex"],"dinge":["ei"]}}\n'+
-  'Zum Cover: "ort" ist einer der acht Werte. "nacht" ist true, wenn die Geschichte nachts spielt. "figuren" nennt die wichtigsten Figuren, höchstens 6: die bekannten mit ihrem Schlüssel, neue Figuren als Objekt {"name":"Bananensaurus","form":"trex|langhals|drache|klein","farbe":"#rrggbb","akzent":"#rrggbb"} mit passender Farbe. Figuren aus Spielen, Filmen oder Serien zeichnest du als eigenen, neuen Dino in passender Farbe. "dinge" sind höchstens 2 aus: ei, schatz, diamant, kuerbis, rakete, stern (oder eine leere Liste).';
+  'Zum Cover: "ort" ist einer der acht Werte. "nacht" ist true, wenn die Geschichte nachts spielt. "figuren" nennt die wichtigsten Figuren, höchstens 6: die bekannten mit ihrem Schlüssel, neue Figuren als Objekt {"name":"Bananensaurus","form":"trex|langhals|drache|klein","farbe":"#rrggbb","akzent":"#rrggbb","beschreibung":"ein Satz, wie die Figur ist"} mit passender Farbe. Figuren aus Spielen, Filmen oder Serien zeichnest du als eigenen, neuen Dino in passender Farbe. "dinge" sind höchstens 2 aus: ei, schatz, diamant, kuerbis, rakete, stern (oder eine leere Liste).';
   return p;
 }
 function clean(out,req){
@@ -489,10 +546,18 @@ function clean(out,req){
   const abs=Array.isArray(out.absaetze)?out.absaetze.map(s=>String(s).replace(/\s[–—]\s/g,', ').replace(/[–—]/g,', ')).filter(s=>s.trim()):[];
   if(!abs.length)throw{code:'invalid_json'};
   const c=out.cover||{};
-  const figs=(Array.isArray(c.figuren)?c.figuren:[]).map(f=>typeof f==='string'?(CAST[f]?f:null):(f&&typeof f==='object'?{name:String(f.name||''),form:FORMS[f.form]?f.form:'trex',farbe:hexOk(f.farbe,'#5fa85a'),akzent:hexOk(f.akzent,'#ffd23f')}:null)).filter(Boolean).slice(0,6);
+  const figs=(Array.isArray(c.figuren)?c.figuren:[]).map(f=>{
+    if(typeof f==='string'){if(CAST[f])return f;const cu=customById(f);return cu?{name:cu.name,form:cu.form,farbe:cu.farbe,akzent:cu.akzent}:null}
+    if(f&&typeof f==='object'){const o={name:String(f.name||'').slice(0,30),form:FORMS[f.form]?f.form:'trex',farbe:hexOk(f.farbe,'#5fa85a'),akzent:hexOk(f.akzent,'#ffd23f')};
+      const known=roster(true).find(r=>r.name.toLowerCase()===o.name.toLowerCase());
+      if(known&&CAST[known.id])return known.id;
+      if(known){const cu=customById(known.id);if(cu)return{name:cu.name,form:cu.form,farbe:cu.farbe,akzent:cu.akzent}}
+      addCustom(Object.assign({},o,{beschreibung:f.beschreibung}));return o}
+    return null}).filter(Boolean).slice(0,6);
+  const reqFigs=(req.chars||[]).map(id=>CAST[id]?id:(customById(id)?(cu=>({name:cu.name,form:cu.form,farbe:cu.farbe,akzent:cu.akzent}))(customById(id)):null)).filter(Boolean);
   return{id:String(Date.now()),seed:(Math.random()*1e9)|0,created:Date.now(),
     titel:String(out.titel||'Ein neues Abenteuer').slice(0,80),absaetze:abs,frage:out.frage?String(out.frage):'',
-    cover:{ort:PLACES[c.ort]?c.ort:(req.place||'wiese'),nacht:!!c.nacht,figuren:figs.length?figs:(req.chars.length?req.chars:['rex']),dinge:(Array.isArray(c.dinge)?c.dinge:[]).filter(k=>ITEMS[k]).slice(0,2)}};
+    cover:{ort:PLACES[c.ort]?c.ort:(req.place||'wiese'),nacht:!!c.nacht,figuren:figs.length?figs:(reqFigs.length?reqFigs:['rex']),dinge:(Array.isArray(c.dinge)?c.dinge:[]).filter(k=>ITEMS[k]).slice(0,2)}};
 }
 const MSG={limit:'Für heute sind genug Geschichten erfunden. Morgen geht es weiter!',offline:'Rex ist gerade nicht erreichbar. Ist das Internet an?',no_key:'Bei Cloudflare fehlt noch der Claude-Schlüssel. Mama oder Papa schauen nach.',forbidden:'Diese Seite darf Rex nicht fragen.',bad_key:'Der Claude-Schlüssel stimmt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',bad_model:'Das Modell passt nicht. Mama oder Papa schauen bei „Für Eltern“ nach.',rate_limited:'Rex braucht eine kleine Pause. Probier es gleich nochmal.',not_granted:'Mama oder Papa müssen erst erlauben, dass Rex Geschichten erfinden darf.',sampling_disabled:'Geschichten erfinden ist gerade nicht möglich.',session_expired:'Mama oder Papa müssen sich bei Claude neu anmelden.',refused:'Zu dieser Idee fällt Rex nichts ein. Probier eine andere Idee!',invalid_json:'Huch, da ist etwas durcheinander gekommen. Probier es nochmal.'};
 async function generate(req){
@@ -512,82 +577,227 @@ async function generate(req){
 }
 
 /* ---------- Vorlesen ---------- */
-const TTS='speechSynthesis' in window;let reading=false,voice=null;
+const TTS='speechSynthesis' in window;
+const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);let reading=false,voice=null;
 function deVoices(){try{return speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang))}catch(e){return[]}}
 function voiceScore(v){const n=v.name;let s=0;if(/premium/i.test(n))s+=50;if(/enhanced|verbessert|erweitert/i.test(n))s+=40;if(/natural|neural|online/i.test(n))s+=35;if(/google/i.test(n))s+=20;if(/anna|petra|helena|katja|marlene|vicki/i.test(n))s+=10;if(/de-DE/i.test(v.lang))s+=2;return s}
-function pickVoice(){const v=deVoices();const want=cfg().voice;voice=(want&&v.find(x=>x.name===want))||v.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null}
+const ELEVEN=[['EXAVITQu4vr4xnSDxMaL','Sarah (warm, ruhig)'],['XrExE9yKIg1WjnnlVkGX','Matilda (freundlich)'],['FGY2WhTYpPnrIDTdsKH5','Laura (fröhlich)'],['pFZP5JQG7iQjIQuC4Bku','Lily (sanft)'],['JBFqnCBsd6RMkjVDRZzb','George (Erzähler)'],['nPczCjzI2devNBz1zQrb','Brian (tief, ruhig)'],['IKne3meq5aSn9XLyUdCD','Charlie (locker)']];
+function voiceMode(){const v=cfg().voice;if(!v)return PROXY?'eleven:'+ELEVEN[0][0]:'device:';if(/^(eleven|device):/.test(v))return v;return 'device:'+v}
+function deviceWant(){const m=voiceMode();return m.startsWith('device:')?m.slice(7):''}
+function pickVoice(){const v=deVoices();const want=deviceWant();voice=(want&&v.find(x=>x.name===want))||v.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null}
 if(TTS){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}}
 function setReadBtn(on){$('read-label').textContent=on?'Stopp':'Vorlesen';$('read-icon').innerHTML=on?'<path d="M5 5h14v14H5z"/>':'<path d="M6 3l14 9-14 9z"/>'}
 function mark(i){[...$('s-body').children].forEach((p,j)=>p.classList.toggle('now',j===i))}
 let keep=null,watch=null,started=false;
 function readHelp(show){const n=$('read-help');if(n)n.hidden=!show}
-function stopRead(){reading=false;clearInterval(keep);clearTimeout(watch);if(TTS)try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel()}catch(e){}if($('read-label'))setReadBtn(false);if($('s-body'))mark(-1)}
+const player=new Audio();player.preload='auto';let elParts=[],elIdx=0,elVoice='';
+function ttsUrl(text,vid){return PROXY+'/tts?voice='+encodeURIComponent(vid)+'&text='+encodeURIComponent(text)}
+function partsOf(st){return [st.titel].concat(st.absaetze,st.frage?[st.frage]:[])}
+function showPart(i){mark(i-1);const el=$('s-body').children[i-1];if(el)el.scrollIntoView({block:'start',behavior:'smooth'})}
+function elPlay(){
+  if(!reading)return;if(elIdx>=elParts.length){stopRead();return}
+  showPart(elIdx);player.src=ttsUrl(elParts[elIdx],elVoice);
+  const pr=player.play();if(pr&&pr.catch)pr.catch(()=>{if(reading)elFail()});
+  const nx=elParts[elIdx+1];if(nx)fetch(ttsUrl(nx,elVoice),{mode:'no-cors'}).catch(()=>{});
+}
+function elFail(){const from=elIdx;stopRead();if(TTS){readHelp(false);startDeviceRead(from)}else readHelp(true)}
+player.addEventListener('ended',()=>{if(!reading)return;elIdx++;elPlay()});
+player.addEventListener('error',()=>{if(reading&&player.src)elFail()});
+function stopRead(){try{player.pause()}catch(e){}reading=false;clearInterval(keep);clearTimeout(watch);if(TTS)try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel()}catch(e){}if($('read-label'))setReadBtn(false);if($('s-body'))mark(-1)}
 function startRead(){
+  if(!current)return;
+  const m=voiceMode();
+  if(m.startsWith('eleven:')&&PROXY){stopRead();readHelp(false);elParts=partsOf(current);elIdx=0;elVoice=m.slice(7);reading=true;setReadBtn(true);elPlay();return}
+  startDeviceRead(0);
+}
+function startDeviceRead(from){
   if(!current||!TTS)return;
   const wasBusy=speechSynthesis.speaking||speechSynthesis.pending;
   if(wasBusy)speechSynthesis.cancel();
   reading=true;started=false;setReadBtn(true);readHelp(false);pickVoice();
-  const parts=[current.titel].concat(current.absaetze,current.frage?[current.frage]:[]);
+  const all=partsOf(current);const parts=all.slice(from);
   const go=()=>{
     try{speechSynthesis.resume()}catch(e){}
     parts.forEach((t,i)=>{
       const u=new SpeechSynthesisUtterance(t);u.lang='de-DE';if(voice)u.voice=voice;u.rate=.9;u.pitch=1.05;u.volume=1;
-      u.onstart=()=>{started=true;if(!reading)return;mark(i-1);const el=$('s-body').children[i-1];if(el)el.scrollIntoView({block:'start',behavior:'smooth'})};
+      u.onstart=()=>{started=true;if(!reading)return;showPart(i+from)};
       if(i===parts.length-1)u.onend=()=>{if(reading)stopRead()};
       u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;stopRead();readHelp(true)};
       speechSynthesis.speak(u);
     });
-    keep=setInterval(()=>{try{if(speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();speechSynthesis.resume()}}catch(e){}},10000);
+    if(!IOS)keep=setInterval(()=>{try{if(speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();speechSynthesis.resume()}}catch(e){}},10000);
     watch=setTimeout(()=>{if(reading&&!started){stopRead();readHelp(true)}},4000);
   };
   if(wasBusy)setTimeout(go,150);else go();
 }
-if(!TTS)$('b-read').hidden=true;
+if(!TTS&&!PROXY)$('b-read').hidden=true;
 $('b-read').addEventListener('click',()=>reading?stopRead():startRead());
 
 /* ---------- Knöpfe ---------- */
 document.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>show('home')));
-const openIdeas=()=>{$('idea').value='';$('mic-text').textContent=SR?'Drück auf das Mikrofon und erzähl deine Idee!':'Schreib deine Idee hier auf.';$('b-go').classList.remove('ready');show('ideas')};
+const openIdeas=()=>{buildChars();$('idea').value='';$('mic-text').textContent=HAS_MIC?'Drück auf das Mikrofon und erzähl deine Idee!':'Schreib deine Idee hier auf.';$('b-go').classList.remove('ready');show('ideas')};
 $('b-new').addEventListener('click',openIdeas);$('b-new2').addEventListener('click',openIdeas);
 $('b-go').addEventListener('click',()=>generate({chars:[...pick.chars],place:pick.place,idea:$('idea').value.trim()}));
 $('idea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('b-go').click()}});
 $('b-surprise').addEventListener('click',()=>{const ids=Object.keys(CAST).sort(()=>Math.random()-.5).slice(0,3);const pl=Object.keys(PLACES);generate({chars:ids.includes('rex')?ids:['rex'].concat(ids.slice(0,2)),place:pl[(Math.random()*pl.length)|0],idea:''})});
-$('b-next').addEventListener('click',()=>{if(!current)return;const ch=(current.cover.figuren||[]).filter(f=>typeof f==='string');generate({chars:ch.length?ch:['rex'],place:null,idea:'',prev:current})});
+$('b-next').addEventListener('click',()=>{if(!current)return;const RL=roster();const ch=(current.cover.figuren||[]).map(f=>typeof f==='string'?f:(RL.find(r=>r.name.toLowerCase()===String(f.name||'').toLowerCase())||{}).id).filter(id=>id&&RL.some(r=>r.id===id));generate({chars:ch.length?ch:['rex'],place:null,idea:'',prev:current})});
 $('b-retry').addEventListener('click',()=>{if(lastReq)generate(lastReq)});
 
-/* ---------- Spracheingabe ---------- */
+/* ---------- Spracheingabe ----------
+   Weg 1 (bevorzugt): eigene Aufnahme, Mikrofon wird danach sicher abgeschaltet,
+   Text kommt von Whisper über den Cloudflare Worker.
+   Weg 2 (Rückfall): Spracherkennung des Browsers. */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec=null,listening=false;
-function micUi(on){listening=on;$('b-mic').classList.toggle('on',on);$('b-mic').setAttribute('aria-label',on?'Zuhören beenden':'Idee sagen')}
-function stopMic(){if(rec){try{rec.abort()}catch(e){}rec=null}micUi(false)}
+const CAN_REC=!!(PROXY&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
+const HAS_MIC=CAN_REC||!!SR;
+let rec=null,listening=false,recState=null;
+function micUi(on){listening=on;$('b-mic').classList.toggle('on',on);$('b-mic').setAttribute('aria-label',on?'Fertig erzählt':'Idee sagen')}
+function micSay(t){$('mic-text').textContent=t}
+function gotIdea(text){
+  $('idea').value=text;micSay('„'+text+'“  Super Idee! Drück jetzt auf Los.');
+  $('b-go').classList.remove('ready');void $('b-go').offsetWidth;$('b-go').classList.add('ready');$('b-go').scrollIntoView({block:'center',behavior:'smooth'});
+}
+function releaseRec(){
+  const st=recState;recState=null;if(!st)return;
+  clearInterval(st.tick);clearTimeout(st.maxT);
+  try{st.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{st.ctx&&st.ctx.close()}catch(e){}
+}
+function stopMic(){
+  if(recState){recState.cancelled=true;try{recState.mr.state!=='inactive'&&recState.mr.stop()}catch(e){}releaseRec()}
+  if(rec){try{rec.abort()}catch(e){}rec=null}
+  micUi(false);
+}
+async function startRecording(){
+  stopRead();stopMic();
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+  catch(e){micSay(e&&e.name==='NotAllowedError'?'Das Mikrofon ist noch nicht erlaubt. Mama oder Papa können es erlauben.':'Das Mikrofon geht gerade nicht.');return}
+  const types=['audio/mp4','audio/webm;codecs=opus','audio/webm'];const mime=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  let mr;try{mr=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream)}catch(e){stream.getTracks().forEach(t=>t.stop());micSay('Aufnehmen geht hier leider nicht.');return}
+  const st={stream,mr,chunks:[],heard:false,cancelled:false,ctx:null};recState=st;
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)st.chunks.push(e.data)};
+  mr.onstop=()=>{
+    const blob=new Blob(st.chunks,{type:mr.mimeType||mime||'audio/mp4'});
+    releaseRec();micUi(false);
+    if(st.cancelled)return;
+    if(!st.heard||blob.size<2000){micSay('Ich habe nichts gehört. Drück nochmal und sprich laut!');return}
+    transcribe(blob);
+  };
+  // Lautstärke beobachten: automatisch stoppen, wenn Nick fertig ist
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;const ctx=new AC();st.ctx=ctx;
+    const src=ctx.createMediaStreamSource(stream);const an=ctx.createAnalyser();an.fftSize=1024;src.connect(an);
+    const buf=new Float32Array(an.fftSize);let quietSince=Date.now();const t0=Date.now();
+    st.tick=setInterval(()=>{
+      an.getFloatTimeDomainData(buf);let sum=0;for(let i=0;i<buf.length;i++)sum+=buf[i]*buf[i];const rms=Math.sqrt(sum/buf.length);
+      const now=Date.now();
+      if(rms>0.02){st.heard=true;quietSince=now}
+      if(st.heard&&now-quietSince>1800)finishRecording();
+      else if(!st.heard&&now-t0>7000)finishRecording();
+    },120);
+  }catch(e){st.heard=true}
+  st.maxT=setTimeout(finishRecording,20000);
+  mr.start();micUi(true);micSay('Ich höre zu …');
+}
+function finishRecording(){const st=recState;if(!st)return;clearInterval(st.tick);try{st.mr.state!=='inactive'&&st.mr.stop()}catch(e){releaseRec();micUi(false)}}
+async function transcribe(blob){
+  micSay('Rex schreibt mit …');$('b-mic').disabled=true;
+  try{
+    const r=await fetch(PROXY+'/transcribe',{method:'POST',headers:{'content-type':blob.type||'application/octet-stream'},body:blob});
+    const d=await r.json().catch(()=>({}));
+    const text=String(d.text||'').trim();
+    if(!r.ok||!text)micSay(r.status===429?'Für heute ist genug erzählt. Morgen geht es weiter!':'Das habe ich nicht verstanden. Drück nochmal und sprich laut!');
+    else gotIdea(text);
+  }catch(e){micSay('Rex ist gerade nicht erreichbar. Ist das Internet an?')}
+  finally{$('b-mic').disabled=false}
+}
 function startMic(){
   stopRead();stopMic();
   rec=new SR();rec.lang='de-DE';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
   let heard='',err='';
-  rec.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;heard=t.trim();if(heard){$('mic-text').textContent=heard;$('idea').value=heard}};
+  rec.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;heard=t.trim();if(heard){micSay(heard);$('idea').value=heard}};
   rec.onerror=e=>{err=e.error||'x'};
-  rec.onend=()=>{rec=null;micUi(false);
-    if(heard){$('mic-text').textContent='„'+heard+'“  Super Idee! Drück jetzt auf Los.';$('b-go').classList.remove('ready');void $('b-go').offsetWidth;$('b-go').classList.add('ready');$('b-go').scrollIntoView({block:'center',behavior:'smooth'})}
-    else if(err==='not-allowed'||err==='service-not-allowed')$('mic-text').textContent='Das Mikrofon ist noch nicht erlaubt. Mama oder Papa können es im Browser erlauben.';
-    else if(err==='network')$('mic-text').textContent='Zum Zuhören braucht das Gerät Internet. Probier es gleich nochmal.';
-    else $('mic-text').textContent='Ich habe nichts gehört. Drück nochmal und sprich laut!'};
-  try{rec.start();micUi(true);$('mic-text').textContent='Ich höre zu …'}catch(e){micUi(false)}
+  rec.onend=()=>{try{rec&&rec.abort()}catch(e){}rec=null;micUi(false);
+    if(heard)gotIdea(heard);
+    else if(err==='not-allowed'||err==='service-not-allowed')micSay('Das Mikrofon ist noch nicht erlaubt. Mama oder Papa können es im Browser erlauben.');
+    else if(err==='network')micSay('Zum Zuhören braucht das Gerät Internet. Probier es gleich nochmal.');
+    else micSay('Ich habe nichts gehört. Drück nochmal und sprich laut!')};
+  try{rec.start();micUi(true);micSay('Ich höre zu …')}catch(e){micUi(false)}
 }
-if(SR)$('b-mic').addEventListener('click',()=>listening?(rec&&rec.stop()):startMic());
+if(HAS_MIC)$('b-mic').addEventListener('click',()=>{
+  if(listening){if(recState)finishRecording();else if(rec)rec.stop();return}
+  if(CAN_REC)startRecording();else startMic();
+});
 else{$('b-mic').hidden=true;$('idea-label').textContent='Deine Idee:'}
 
+/* ---------- Eltern: Figuren und Geschichten ---------- */
+function twoStep(btn,label,ask,action){btn.textContent=label;let armed=false,t=null;btn.addEventListener('click',()=>{if(!armed){armed=true;btn.textContent=ask;btn.classList.add('danger');t=setTimeout(()=>{armed=false;btn.textContent=label;btn.classList.remove('danger')},4000)}else{clearTimeout(t);action()}})}
+const FORMNAMES={trex:'Dino (wie Rex)',langhals:'Langhals',drache:'Drache (fliegt)',klein:'Kleiner Dino'};
+function el(tag,props,kids){const e=document.createElement(tag);Object.assign(e,props||{});(kids||[]).forEach(k=>e.append(k));return e}
+function renderFigs(){
+  const list=$('fig-list');list.textContent='';
+  roster(true).forEach(r=>{
+    const row=el('div',{className:'figrow'+(r.hidden?' off':'')});
+    const vis=figVisual(r.id);const cv=figCanvas(vis,76);row.append(cv);
+    const f=el('div',{className:'f'});
+    const nm=el('input',{className:'idea',type:'text',value:r.name,maxLength:30});nm.setAttribute('aria-label','Name');
+    const ds=el('input',{className:'idea',type:'text',value:r.desc||'',maxLength:160,placeholder:'Wie ist die Figur?'});ds.setAttribute('aria-label','Beschreibung');
+    f.append(nm,ds);
+    let fm,c1,c2;
+    if(!r.builtin){
+      fm=el('select',{className:'idea'});Object.keys(FORMNAMES).forEach(k=>fm.append(el('option',{value:k,textContent:FORMNAMES[k]})));fm.value=r.form;fm.setAttribute('aria-label','Form');
+      c1=el('input',{type:'color',value:r.farbe});c1.setAttribute('aria-label','Farbe');
+      c2=el('input',{type:'color',value:r.akzent});c2.setAttribute('aria-label','Akzentfarbe');
+      const prev=()=>{const v=resolveFig({form:fm.value,farbe:c1.value,akzent:c2.value});cv.replaceWith(figCanvas(v,76));};
+      [fm,c1,c2].forEach(x=>x.addEventListener('input',()=>{const n=figCanvas(resolveFig({form:fm.value,farbe:c1.value,akzent:c2.value}),76);row.firstChild.replaceWith(n)}));
+      f.append(el('div',{className:'two'},[fm,c1,c2]));
+    }
+    const sv=el('button',{className:'btn small go',type:'button',textContent:'Speichern'});
+    sv.addEventListener('click',()=>{const d=figStore();
+      if(r.builtin){const o=d.builtin[r.id]||{};o.name=nm.value.trim()||CAST[r.id].name;o.desc=ds.value.trim();d.builtin[r.id]=o}
+      else{const c=d.custom.find(x=>x.id===r.id);if(c){c.name=nm.value.trim()||c.name;c.desc=ds.value.trim();c.form=fm.value;c.farbe=c1.value;c.akzent=c2.value}}
+      saveFigs(d);renderFigs();$('set-msg').textContent='Figur gespeichert.'});
+    const rm=el('button',{className:'btn small',type:'button'});
+    if(r.builtin&&r.hidden){rm.textContent='Wieder anzeigen';rm.addEventListener('click',()=>{const d=figStore();(d.builtin[r.id]=d.builtin[r.id]||{}).hidden=false;saveFigs(d);renderFigs()})}
+    else twoStep(rm,r.builtin?'Ausblenden':'Löschen',r.builtin?'Wirklich ausblenden?':'Wirklich löschen?',()=>{const d=figStore();
+      if(r.builtin){(d.builtin[r.id]=d.builtin[r.id]||{}).hidden=true}else{d.custom=d.custom.filter(x=>x.id!==r.id)}
+      saveFigs(d);pick.chars.delete(r.id);renderFigs()});
+    f.append(el('div',{className:'two'},[sv,rm]));
+    row.append(f);list.append(row);
+  });
+}
+$('fig-add').addEventListener('click',()=>{let n='Neue Figur',i=2;while(roster(true).some(r=>r.name===n))n='Neue Figur '+i++;addCustom({name:n,form:'trex',farbe:'#e67e22',akzent:'#ffd23f',beschreibung:''});renderFigs();const rows=$('fig-list').children;const last=rows[rows.length-1];if(last){last.scrollIntoView({block:'center'});const inp=last.querySelector('input');if(inp)inp.select()}});
+function renderStoryList(){
+  const list=$('story-list');list.textContent='';
+  if(!stories.length){list.append(el('p',{className:'hint',textContent:'Noch keine Geschichten gespeichert.'}));return}
+  stories.forEach(st=>{
+    const c=document.createElement('canvas');c.width=160;c.height=200;c.setAttribute('aria-hidden','true');drawCover(c,st);
+    const info=el('div',{},[el('b',{textContent:st.titel}),el('small',{textContent:st.created?new Date(st.created).toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'Beispiel'})]);
+    const rm=el('button',{className:'btn small',type:'button'});
+    twoStep(rm,'Löschen','Wirklich löschen?',()=>{stories=stories.filter(x=>x!==st);save();renderShelf();renderStoryList()});
+    list.append(el('div',{className:'srow'},[c,info,rm]));
+  });
+}
+
 /* ---------- Eltern ---------- */
-function fillVoices(){const sel=$('set-voice-sel');sel.textContent='';const v=deVoices().sort((a,b)=>voiceScore(b)-voiceScore(a));
-  const o0=document.createElement('option');o0.value='';o0.textContent='Automatisch die beste';sel.append(o0);
-  v.forEach(x=>{const o=document.createElement('option');o.value=x.name;o.textContent=x.name;sel.append(o)});sel.value=cfg().voice||''}
+function fillVoices(){const sel=$('set-voice-sel');sel.textContent='';
+  if(PROXY){const g=el('optgroup',{label:'Natürliche Stimmen (ElevenLabs)'});ELEVEN.forEach(([id,n])=>g.append(el('option',{value:'eleven:'+id,textContent:n})));
+    const own=cfg().customVoice;if(own)g.append(el('option',{value:'eleven:'+own,textContent:'Eigene Stimme ('+own.slice(0,6)+'…)'}));sel.append(g)}
+  const g2=el('optgroup',{label:'Stimme des Geräts'});g2.append(el('option',{value:'device:',textContent:'Gerätestimme, automatisch'}));
+  deVoices().sort((a,b)=>voiceScore(b)-voiceScore(a)).forEach(x=>g2.append(el('option',{value:'device:'+x.name,textContent:x.name})));sel.append(g2);
+  sel.value=voiceMode();if(!sel.value)sel.value=sel.options[0].value;$('set-own-voice').value=cfg().customVoice||'';$('own-voice-wrap').hidden=!PROXY}
 let gateAns=0;
 function refreshKey(){const k=hasKey();$('b-new').disabled=!k;$('b-surprise').disabled=!k;$('b-new').hidden=!k;$('b-surprise').hidden=!k;$('no-ai').hidden=k}
-$('b-parents').addEventListener('click',()=>{const a=6+((Math.random()*6)|0),b=6+((Math.random()*4)|0);gateAns=a*b;$('gate-q').textContent='Was ist '+a+' mal '+b+'?';$('gate-in').value='';$('gate').hidden=false;$('settings').hidden=true;show('parents')});
-$('gate-ok').addEventListener('click',()=>{if(parseInt($('gate-in').value,10)===gateAns){const c=cfg();$('set-key').value=c.key||'';$('set-model').value=c.model||'claude-opus-5-5';$('set-name').value=c.name||'Nick';fillVoices();$('proxy-note').hidden=!PROXY;['set-key','set-key-label','set-key-hint','set-del','set-model','set-model-label'].forEach(i=>$(i).hidden=!!PROXY);$('set-msg').textContent='';$('gate').hidden=true;$('settings').hidden=false}else{$('gate-q').textContent='Leider falsch. '+$('gate-q').textContent.replace(/^Leider falsch\. /,'')}});
+$('b-parents').addEventListener('click',()=>{const a=6+((Math.random()*6)|0),b=6+((Math.random()*4)|0);gateAns=a*b;$('gate-q').textContent='Was ist '+a+' mal '+b+'?';$('gate-in').value='';$('gate').hidden=false;$('settings').hidden=true;$('figs-panel').hidden=true;$('stories-panel').hidden=true;show('parents')});
+$('gate-ok').addEventListener('click',()=>{if(parseInt($('gate-in').value,10)===gateAns){const c=cfg();$('set-key').value=c.key||'';$('set-model').value=c.model||'claude-opus-5-5';$('set-name').value=c.name||'Nick';fillVoices();$('proxy-note').hidden=!PROXY;['set-key','set-key-label','set-key-hint','set-del','set-model','set-model-label'].forEach(i=>$(i).hidden=!!PROXY);$('set-msg').textContent='';$('gate').hidden=true;$('settings').hidden=false;$('figs-panel').hidden=false;$('stories-panel').hidden=false;renderFigs();renderStoryList()}else{$('gate-q').textContent='Leider falsch. '+$('gate-q').textContent.replace(/^Leider falsch\. /,'')}});
 $('gate-in').addEventListener('keydown',e=>{if(e.key==='Enter')$('gate-ok').click()});
-$('set-save').addEventListener('click',()=>{setCfg({voice:$('set-voice-sel').value,key:$('set-key').value.trim(),model:$('set-model').value.trim()||'claude-opus-5-5',name:$('set-name').value.trim()||'Nick'});refreshKey();$('set-msg').textContent='Gespeichert.'});
+$('set-save').addEventListener('click',()=>{const ov=$('set-own-voice').value.trim();const ovOk=/^[A-Za-z0-9]{16,32}$/.test(ov);setCfg({voice:ovOk&&ov!==(cfg().customVoice||'')?'eleven:'+ov:$('set-voice-sel').value,customVoice:ovOk?ov:'',key:$('set-key').value.trim(),model:$('set-model').value.trim()||'claude-opus-5-5',name:$('set-name').value.trim()||'Nick'});refreshKey();fillVoices();$('set-msg').textContent='Gespeichert.'});
 $('set-del').addEventListener('click',()=>{const c=cfg();delete c.key;setCfg(c);$('set-key').value='';refreshKey();$('set-msg').textContent='Schlüssel gelöscht.'});
-$('set-voice').addEventListener('click',()=>{if(!TTS){$('set-msg').textContent='Dieser Browser kann nicht vorlesen.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Hallo '+kid()+', hier ist Rex!');u.lang='de-DE';const want=$('set-voice-sel').value;pickVoice();const vs=deVoices().find(x=>x.name===want);if(vs)voice=vs;if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u);$('set-msg').textContent=voice?'Stimme: '+voice.name:'Keine deutsche Stimme gefunden, es wird die Standardstimme benutzt.'});
+$('set-voice').addEventListener('click',()=>{const m=$('set-voice-sel').value;const ov=$('set-own-voice').value.trim();const probe='Hallo '+kid()+', hier ist Rex! Soll ich dir eine Geschichte vorlesen?';
+  if(PROXY&&(/^[A-Za-z0-9]{16,32}$/.test(ov)&&ov!==(cfg().customVoice||'')||m.startsWith('eleven:'))){const vid=/^[A-Za-z0-9]{16,32}$/.test(ov)&&ov!==(cfg().customVoice||'')?ov:m.slice(7);stopRead();player.src=ttsUrl(probe,vid);$('set-msg').textContent='Stimme wird geladen …';
+    const pr=player.play();player.onplaying=()=>{$('set-msg').textContent='Das ist die gewählte Stimme.';player.onplaying=null};if(pr&&pr.catch)pr.catch(()=>{$('set-msg').textContent='Die Stimme konnte nicht geladen werden. Ist der ElevenLabs-Schlüssel bei Cloudflare eingetragen?'});return}
+  if(!TTS){$('set-msg').textContent='Dieser Browser kann nicht vorlesen.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(probe);u.lang='de-DE';const nm=m.slice(7);const vs=deVoices().find(x=>x.name===nm);pickVoice();if(vs)voice=vs;if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u);$('set-msg').textContent=voice?'Stimme: '+voice.name:'Keine deutsche Stimme gefunden, es wird die Standardstimme benutzt.'});
 
 /* ---------- Start ---------- */
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
