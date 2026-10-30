@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rex">
+<meta name="application-name" content="Rex">
 <meta name="theme-color" content="#7cc6f2">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -141,6 +143,14 @@ label.big{font-family:var(--display);font-size:24px}
   </div>
   <div class="sign" style="margin-top:18px"><h1 id="t-ideas" style="font-size:clamp(34px,7vw,52px)">Deine Idee</h1></div>
   <div class="panel" style="margin-top:22px">
+    <h2>Wer spielt mit?</h2>
+    <div class="grid" id="chars"></div>
+  </div>
+  <div class="panel" style="margin-top:22px">
+    <h2>Wo spielt es?</h2>
+    <div class="grid" id="places"></div>
+  </div>
+  <div class="panel" style="margin-top:22px">
     <h2>Was soll passieren?</h2>
     <div class="mic-row" id="mic-row">
       <button class="mic" id="b-mic" type="button" aria-label="Idee sagen">
@@ -150,14 +160,6 @@ label.big{font-family:var(--display);font-size:24px}
     </div>
     <label class="hint" for="idea" id="idea-label">Oder tippen:</label>
     <input class="idea" id="idea" type="text" autocomplete="off" placeholder="Rex findet einen Bananensaurus">
-  </div>
-  <div class="panel" style="margin-top:22px">
-    <h2>Wer spielt mit?</h2>
-    <div class="grid" id="chars"></div>
-  </div>
-  <div class="panel" style="margin-top:22px">
-    <h2>Wo spielt es?</h2>
-    <div class="grid" id="places"></div>
   </div>
 
   <div class="row center" style="margin-top:26px">
