@@ -583,7 +583,7 @@ const TTS='speechSynthesis' in window;
 const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);let reading=false,voice=null;
 function deVoices(){try{return speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang))}catch(e){return[]}}
 function voiceScore(v){const n=v.name;let s=0;if(/premium/i.test(n))s+=50;if(/enhanced|verbessert|erweitert/i.test(n))s+=40;if(/natural|neural|online/i.test(n))s+=35;if(/google/i.test(n))s+=20;if(/anna|petra|helena|katja|marlene|vicki/i.test(n))s+=10;if(/de-DE/i.test(v.lang))s+=2;return s}
-const ELEVEN=[['EXAVITQu4vr4xnSDxMaL','Sarah (warm, ruhig)'],['XrExE9yKIg1WjnnlVkGX','Matilda (freundlich)'],['FGY2WhTYpPnrIDTdsKH5','Laura (fröhlich)'],['pFZP5JQG7iQjIQuC4Bku','Lily (sanft)'],['JBFqnCBsd6RMkjVDRZzb','George (Erzähler)'],['nPczCjzI2devNBz1zQrb','Brian (tief, ruhig)'],['IKne3meq5aSn9XLyUdCD','Charlie (locker)']];
+const ELEVEN=[['ZAPNKuPdImuk8QTYqhNq','Papa (Daniel)'],['EXAVITQu4vr4xnSDxMaL','Sarah (warm, ruhig)'],['XrExE9yKIg1WjnnlVkGX','Matilda (freundlich)'],['FGY2WhTYpPnrIDTdsKH5','Laura (fröhlich)'],['pFZP5JQG7iQjIQuC4Bku','Lily (sanft)'],['JBFqnCBsd6RMkjVDRZzb','George (Erzähler)'],['nPczCjzI2devNBz1zQrb','Brian (tief, ruhig)'],['IKne3meq5aSn9XLyUdCD','Charlie (locker)']];
 function voiceMode(){const v=cfg().voice;if(!v)return PROXY?'eleven:'+ELEVEN[0][0]:'device:';if(/^(eleven|device):/.test(v))return v;return 'device:'+v}
 function deviceWant(){const m=voiceMode();return m.startsWith('device:')?m.slice(7):''}
 function pickVoice(){const v=deVoices();const want=deviceWant();voice=(want&&v.find(x=>x.name===want))||v.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null}
