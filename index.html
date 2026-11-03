@@ -279,6 +279,7 @@ const T_REX=[[1,12,6,3,'D'],[0,11,2,2,'D'],[6,10,10,8,'B'],[12,3,10,7,'B'],[14,1
 const T_DRACHE=[[2,11,3,2,'D'],[4,12,9,3,'B'],[14,1,6,2,'W'],[13,3,9,2,'W'],[12,5,11,5,'L'],[12,10,14,6,'B'],[14,14,10,2,'P'],[24,7,4,5,'B'],[26,4,8,5,'B'],[33,6,3,3,'B'],[27,2,1,2,'A'],[29,2,1,2,'A'],[30,5,2,2,'A'],[31,5,1,1,'#1d1033'],[33,8,2,1,'#1d1033'],[14,16,2,2,'D'],[22,16,2,2,'D'],[16,10,2,1,'A'],[20,10,2,1,'A']];
 const T_LANG=[[0,15,5,2,'D'],[4,13,14,8,'B'],[15,5,3,9,'B'],[15,1,7,5,'B'],[6,15,2,2,'D'],[11,14,2,1,'D'],[9,18,2,1,'D'],[5,21,3,4,'D'],[14,21,3,4,'D'],[18,5,3,1,'K']];
 const T_KLEIN=[[0,8,2,2,'D'],[2,6,7,5,'B'],[5,1,6,5,'B'],[8,2,1,1,BLK],[8,4,2,1,BLK],[3,7,1,1,'K'],[5,9,1,1,'K'],[6,2,1,1,'K'],[7,8,1,1,'K'],[3,11,2,2,'D'],[7,11,2,2,'D']];
+const T_PRINZ=[[4,0,1,1,'#ffd23f'],[6,0,1,1,'#ffd23f'],[8,0,1,1,'#ffd23f'],[4,1,5,1,'#ffd23f'],[3,2,7,1,'#f2b134'],[3,3,1,5,'#f2b134'],[9,3,1,5,'#f2b134'],[4,3,5,3,'#ffd9b3'],[5,4,1,1,BLK],[7,4,1,1,BLK],[6,5,1,1,'#e05a72'],[2,8,1,2,'#ffd9b3'],[10,8,1,2,'#ffd9b3'],[4,6,5,2,'#f48fb1'],[3,8,7,1,'#ffd23f'],[3,9,7,2,'#f48fb1'],[2,11,9,2,'#f48fb1'],[1,13,11,2,'#f48fb1'],[1,14,11,1,'#f8bbd0'],[4,14,2,1,'#8b4a5e'],[7,14,2,1,'#8b4a5e']];
 const ROBOT=[[12,0,1,2,'#7b8794'],[11,0,3,1,'#3ba7ff'],[8,2,9,6,'#9aa5b1'],[10,4,2,2,'#3ba7ff'],[14,4,2,2,'#3ba7ff'],[10,7,6,1,'#3e4c59'],[0,12,4,2,'#7b8794'],[4,9,12,8,'#7b8794'],[7,11,6,4,'#3e4c59'],[8,12,1,1,'#3ba7ff'],[10,12,1,1,'#5cd65c'],[12,12,1,1,'#ffd23f'],[16,10,3,2,'#9aa5b1'],[5,17,3,5,'#9aa5b1'],[12,17,3,5,'#9aa5b1'],[4,22,5,1,'#3e4c59'],[11,22,5,1,'#3e4c59']];
 const FRIDGE=[[0,16,2,2,'#b9c7d3'],[3,0,2,2,'#8fd3ff'],[7,0,2,2,'#8fd3ff'],[11,0,2,2,'#8fd3ff'],[1,2,14,21,'#b9c7d3'],[2,3,12,19,'#f4f6f8'],[2,9,12,1,'#b9c7d3'],[12,4,1,3,'#8a99a6'],[12,11,1,4,'#8a99a6'],[4,4,2,2,BLK],[8,4,2,2,BLK],[5,7,4,1,BLK],[4,6,1,1,BLK],[9,6,1,1,BLK],[5,13,1,3,'#8fd3ff'],[4,14,3,1,'#8fd3ff'],[3,23,3,3,'#6f8191'],[10,23,3,3,'#6f8191']];
 const EGG=[[5,1,4,1,'#3b82f6'],[4,2,6,1,'#3b82f6'],[3,3,8,2,'#3b82f6'],[3,5,8,3,'#22c55e'],[3,8,8,3,'#a855f7'],[4,11,6,1,'#a855f7'],[5,12,4,1,'#a855f7'],[5,3,1,1,WH],[8,4,1,1,WH],[4,6,1,1,WH],[9,7,1,1,WH],[6,9,1,1,WH],[7,11,1,1,WH]];
@@ -298,6 +299,7 @@ const FORMS={trex:{r:T_REX,w:24,h:23},drache:{r:T_DRACHE,w:37,h:18,fly:true},lan
 
 const CAST={
   rex:{name:'Rex',desc:'ein netter grüner Dino, mutig und hilfsbereit, lacht gern laut',w:24,h:23,r:T_REX.concat([[9,11,2,1,'#c89b5a'],[9,12,1,1,'#c89b5a']]),pal:{B:'#5fa85a',D:'#4a8f45',L:'#7cc276',K:'#2e5a2b'}},
+  jessica:{name:'Prinzessin Jessica',desc:'eine kleine Prinzessin mit goldener Krone und rosa Kleid, sehr höflich, erzählt gern Geschichten und tanzt im Kreis',w:12,h:15,r:T_PRINZ,pal:{}},
   nico:{name:'Nico',desc:'ein großer lila Drache, der toll fliegen kann und alle auf seinem Rücken trägt',w:37,h:18,fly:true,r:T_DRACHE,pal:palFor('drache','#8a5bd6','#ffd23f')},
   robot:{name:'Robo-Dino',desc:'ein Roboter-Dino aus Eisen mit blauen Augen, sagt immer Biep biep',w:20,h:23,r:ROBOT,pal:{}},
   kuehli:{name:'Mr. Kühlschrank',desc:'Mr. Kühlschranksaurus, ein Kühlschrank-Dino, der eiskalte Luft pusten kann und immer Eis dabei hat',w:16,h:26,r:FRIDGE,pal:{}},

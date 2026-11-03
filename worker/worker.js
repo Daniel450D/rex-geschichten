@@ -2,6 +2,11 @@
 // Der API-Schlüssel liegt als Secret ANTHROPIC_API_KEY bei Cloudflare und nie im Browser.
 // Der Worker baut den Prompt selbst, damit er nur Kindergeschichten erzeugt.
 //
+// Fassung 3 (Zähler): Jede /story-Anfrage meldet die ausgewählten Figuren
+// still und leise an den neuen App-Worker (rex-app), der dort einen
+// zentralen Charakter-Zähler führt. Dadurch zählen App und Webseite zusammen.
+// Die Webseite selbst (index.html) bleibt unverändert.
+//
 // Einstellungen (Settings > Variables):
 //   ANTHROPIC_API_KEY  Secret, Pflicht
 //   MODEL              optional, Standard claude-opus-5-5
@@ -11,13 +16,19 @@
 // Binding für die Spracheingabe: Workers AI mit dem Namen AI (Whisper)
 // Vorlesen mit ElevenLabs: Secret ELEVENLABS_API_KEY, optional ELEVEN_MODEL (Standard eleven_multilingual_v2)
 
+// Zähler: der neue App-Worker zählt die Figuren zentral. Das App-Token ist
+// kein API-Schlüssel, sondern das gemeinsame Kennwort zwischen App und Worker.
+const APP_TOKEN='151552d38ab31e853e8109d3987d3b14';
+const STATS_URL='https://rex-app.daniel-504.workers.dev/count';
+
 const CAST={
   rex:{name:'Rex',desc:'ein netter grüner Dino, mutig und hilfsbereit, lacht gern laut'},
   nico:{name:'Nico',desc:'ein großer lila Drache, der toll fliegen kann und alle auf seinem Rücken trägt'},
   robot:{name:'Robo-Dino',desc:'ein Roboter-Dino aus Eisen mit blauen Augen, sagt immer Biep biep'},
   kuehli:{name:'Mr. Kühlschrank',desc:'Mr. Kühlschranksaurus, ein Kühlschrank-Dino, der eiskalte Luft pusten kann und immer Eis dabei hat'},
   zombie:{name:'Zombie-Dino',desc:'ein ganz lieber Zombie-Dino mit Sonnenbrille, der Sonne nicht mag und sehr stark ist'},
-  eierlein:{name:'Eierlein',desc:'ein kleiner grüner Dino mit Punkten und einer Diamantkette, neugierig und mutig'}
+  eierlein:{name:'Eierlein',desc:'ein kleiner grüner Dino mit Punkten und einer Diamantkette, neugierig und mutig'},
+  jessica:{name:'Prinzessin Jessica',desc:'eine kleine Prinzessin mit goldener Krone und rosa Kleid, sehr höflich, erzählt gern Geschichten und tanzt im Kreis'}
 };
 const PLACES={wiese:'Blumenwiese',vulkan:'Vulkan',meer:'Meer',dschungel:'Dschungel',schnee:'Schnee',weltall:'Weltall',hoehle:'Höhle',schloss:'Knochenschloss'};
 let ROSTER=null; // Figuren dieser Anfrage: [{id,name,desc}]
@@ -100,7 +111,7 @@ export default {
     const cors={'Access-Control-Allow-Origin':allowed?origin:allowedList[0],'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'content-type','Access-Control-Max-Age':'86400','Vary':'Origin'};
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
     const url=new URL(request.url);
-    if(request.method==='GET'&&url.pathname==='/')return json({ok:true,app:'rex-geschichten',key:!!env.ANTHROPIC_API_KEY,limit:!!env.LIMITS,ai:!!env.AI,tts:!!env.ELEVENLABS_API_KEY},200,cors);
+    if(request.method==='GET'&&url.pathname==='/')return json({ok:true,app:'rex-geschichten',v:3,stats:true,key:!!env.ANTHROPIC_API_KEY,limit:!!env.LIMITS,ai:!!env.AI,tts:!!env.ELEVENLABS_API_KEY},200,cors);
     if(request.method==='GET'&&url.pathname==='/tts'){
       // Audio-Elemente schicken keinen Origin-Header, dafür den Referer
       const ref=request.headers.get('Referer')||'';
@@ -144,6 +155,14 @@ export default {
     }
     const d=await r.json();
     const text=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    // Zähler: Figuren-Auswahl an den App-Worker melden (ohne Warten,
+    // ohne Fehler, ohne Einfluss auf die Geschichte). Erst nach Erfolg.
+    ctx.waitUntil((async()=>{try{
+      const RN={};(ROSTER||[]).forEach(r=>RN[r.id]=r.name);
+      const chars=req.chars.map(id=>RN[id]||id).slice(0,6);
+      if(!chars.length)return;
+      await fetch(STATS_URL,{method:'POST',headers:{'content-type':'application/json','x-rex-app':APP_TOKEN},body:JSON.stringify({chars})});
+    }catch(e){}})());
     return json({text},200,cors);
   }
 };
