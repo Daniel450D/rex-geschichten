@@ -311,7 +311,7 @@ const CAST={
   loeschi:{name:'Löschi',desc:'Löschi, der Feuerlöschersaurus: ein knallroter Feuerlöscher-Dino mit gelben Rückenzacken und Schlauch-Schwanz, der Feuer mit weißem Schaum löscht und immer hilft, wenn es brenzlig wird',w:20,h:26,r:LOESCHI,pal:{}}
 };
 const ITEMS={ei:{r:EGG,w:14,h:13,y0:1},schatz:{r:CHEST,w:14,h:11},diamant:{r:DIAMOND,w:8,h:6},kuerbis:{r:PUMPKIN,w:10,h:9},rakete:{r:ROCKET,w:8,h:16},stern:{r:STAR,w:9,h:9}};
-const PLACES={wiese:'Blumenwiese',vulkan:'Vulkan',meer:'Meer',dschungel:'Dschungel',schnee:'Schnee',weltall:'Weltall',hoehle:'Höhle',schloss:'Knochenschloss'};
+const PLACES={wiese:'Blumenwiese',vulkan:'Vulkan',meer:'Meer',dschungel:'Dschungel',schnee:'Schnee',weltall:'Weltall',hoehle:'Höhle',schloss:'Knochenschloss',esch:'Esch'};
 
 function drawRects(ctx,rects,pal,x,y,u,flip,w){
   for(const q of rects){
@@ -357,8 +357,8 @@ function block(ctx,x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.ro
 function cloud(ctx,x,y,b){block(ctx,x+b*2,y,b*5,b*2,'#ffffff');block(ctx,x,y+b*2,b*9,b*2,'#ffffff')}
 function drawScene(ctx,W,H,scene,night,seed){
   const R=rng(seed||7),b=Math.max(3,Math.round(W/40)),G=Math.round(H*.80);
-  const skyDay={wiese:'#7cc6f2',vulkan:'#f2a65a',meer:'#6ec3f0',dschungel:'#8fd3c7',schnee:'#b9dcf2',weltall:'#141a3a',hoehle:'#3a2a24',schloss:'#7cc6f2'};
-  const ground={wiese:'#5cb848',vulkan:'#6b4a3a',meer:'#f2d48a',dschungel:'#3f9a3a',schnee:'#f4f8fb',weltall:'#8d93a6',hoehle:'#5a4034',schloss:'#5cb848'};
+  const skyDay={wiese:'#7cc6f2',vulkan:'#f2a65a',meer:'#6ec3f0',dschungel:'#8fd3c7',schnee:'#b9dcf2',weltall:'#141a3a',hoehle:'#3a2a24',schloss:'#7cc6f2',esch:'#8ccbf0'};
+  const ground={wiese:'#5cb848',vulkan:'#6b4a3a',meer:'#f2d48a',dschungel:'#3f9a3a',schnee:'#f4f8fb',weltall:'#8d93a6',hoehle:'#5a4034',schloss:'#5cb848',esch:'#5cb848'};
   const sky=(night&&scene!=='hoehle'&&scene!=='weltall')?'#1d2a5c':(skyDay[scene]||'#7cc6f2');
   block(ctx,0,0,W,H,sky);
   const open=scene!=='hoehle';
@@ -394,6 +394,32 @@ function drawScene(ctx,W,H,scene,night,seed){
   if(scene==='hoehle'){
     for(let i=0;i<14;i++){const x=i*W/13;block(ctx,x,0,b*2,b*(2+(i%3)*2),'#24170f')}
     const cols=['#a855f7','#4fd6ff','#22c55e'];for(let i=0;i<7;i++){const x=R()*W,y=H*.25+R()*H*.4,c=cols[i%3];block(ctx,x,y,b,b*3,c);block(ctx,x+b,y+b,b,b*2,mix(c,.3))}
+  }
+  if(scene==='esch'){
+    // Eifel-Hügel
+    block(ctx,0,H*.56,W*.45,G-H*.56,'#8cc96a');block(ctx,W*.30,H*.60,W*.70,G-H*.60,'#79b95a');block(ctx,W*.70,H*.53,W*.30,G-H*.53,'#93cf72');
+    block(ctx,W*.08,H*.53,W*.25,b*1.2,'#8cc96a');block(ctx,W*.74,H*.50,W*.2,b*1.2,'#93cf72');
+    for(let i=0;i<7;i++)block(ctx,W*(.02+i*.06),H*.57,b*1.3,b*2,'#3f7d3a');
+    // Kirche
+    const tx=W*.56,tw=b*5,tt=G-b*13;
+    block(ctx,W*.30,G-b*7,W*.27,b*7,'#f4f2ea');
+    for(let i=0;i<4;i++)block(ctx,W*.30-b*.5+i*b*1.2,G-b*(10-i*1.0),W*.27+b-i*b*2.4,b*1.1,'#4a4f57');
+    block(ctx,W*.30-b*.5,G-b*7,W*.27+b,b*.6,'#3a3e45');
+    block(ctx,W*.35,G-b*5,b*1.2,b*2.4,'#6b8db0');block(ctx,W*.45,G-b*5,b*1.2,b*2.4,'#6b8db0');
+    block(ctx,tx,tt,tw,G-tt,'#ffffff');block(ctx,tx+tw-b*.8,tt,b*.8,G-tt,'#e6e3d8');
+    block(ctx,tx-b*.4,tt-b*.6,tw+b*.8,b*.8,'#4a4f57');
+    for(let i=0;i<9;i++){const ww=tw-i*b*.55;if(ww<=b*.3)break;block(ctx,tx+(tw-ww)/2,tt-b*1.6-i*b*1.1,ww,b*1.2,'#3a3e45')}
+    block(ctx,tx+tw/2-b*.15,tt-b*13.2,b*.3,b*2.4,'#2a2a2a');block(ctx,tx+tw/2-b*.7,tt-b*12.6,b*1.4,b*.3,'#2a2a2a');
+    block(ctx,tx+b*1.7,tt+b*2,b*1.6,b*2.2,'#3a3e45');block(ctx,tx+b*1.9,tt+b*6,b*1.2,b*1.6,'#6b8db0');
+    block(ctx,tx+b*1.6,G-b*3,b*1.8,b*3,'#6b4524');
+    // Zypressen und Baum
+    for(const [x,h] of [[W*.25,12],[W*.69,11],[W*.73,9]]){block(ctx,x,G-b*h,b*2,b*h,'#2f6b3a');block(ctx,x+b*.4,G-b*(h+1),b*1.2,b,'#2f6b3a')}
+    block(ctx,W*.84,G-b*5,b*.8,b*5,'#6b4524');block(ctx,W*.79,G-b*10,b*6,b*5,'#4e9d3e');block(ctx,W*.80,G-b*11,b*4,b,'#5cb048');
+    block(ctx,W*.04,G-b*4,b*.8,b*4,'#6b4524');block(ctx,W*.0,G-b*8,b*5,b*4.5,'#5cb048');
+    // Bruchsteinmauer
+    block(ctx,0,G-b*2.4,W,b*2.4,'#c2b49a');
+    for(let r=0;r<2;r++)for(let x=(r?b:0);x<W;x+=b*2.2)block(ctx,x,G-b*2.4+r*b*1.2,b*.2,b*1.2,'#9d8f76');
+    block(ctx,0,G-b*1.25,W,b*.15,'#9d8f76');block(ctx,0,G-b*2.6,W,b*.4,'#a89a80');
   }
   if(scene==='schloss'){const u=W*.5/40;drawRects(ctx,CASTLE,{},W*.47,G-30*u,u,false,40)}
   // Boden
@@ -545,8 +571,8 @@ function buildPrompt(req){
   kid()+'s Idee: '+(req.idea?'"'+req.idea.slice(0,400)+'"':'keine, überrasche ihn mit einer schönen Idee')+'\n';
   if(req.prev){p+='\nDas ist der nächste Teil einer Serie. Der letzte Teil hieß "'+req.prev.titel+'" und ging so:\n'+req.prev.absaetze.join('\n').slice(0,4000)+'\nErzähle, wie es weitergeht, mit denselben Freunden.\n'}
   p+='\nAntworte nur mit einem JSON-Objekt in genau dieser Form:\n'+
-  '{"titel":"kurzer Titel","absaetze":["Absatz 1","Absatz 2"],"frage":"eine kurze, fröhliche Frage an '+kid()+' zum Schluss","cover":{"ort":"wiese|vulkan|meer|dschungel|schnee|weltall|hoehle|schloss","nacht":false,"figuren":["rex"],"dinge":["ei"]}}\n'+
-  'Zum Cover: "ort" ist einer der acht Werte. "nacht" ist true, wenn die Geschichte nachts spielt. "figuren" nennt die wichtigsten Figuren, höchstens 6: die bekannten mit ihrem Schlüssel, neue Figuren als Objekt {"name":"Bananensaurus","form":"trex|langhals|drache|klein","farbe":"#rrggbb","akzent":"#rrggbb","beschreibung":"ein Satz, wie die Figur ist"} mit passender Farbe. Figuren aus Spielen, Filmen oder Serien zeichnest du als eigenen, neuen Dino in passender Farbe. "dinge" sind höchstens 2 aus: ei, schatz, diamant, kuerbis, rakete, stern (oder eine leere Liste).';
+  '{"titel":"kurzer Titel","absaetze":["Absatz 1","Absatz 2"],"frage":"eine kurze, fröhliche Frage an '+kid()+' zum Schluss","cover":{"ort":"wiese|vulkan|meer|dschungel|schnee|weltall|hoehle|schloss|esch","nacht":false,"figuren":["rex"],"dinge":["ei"]}}\n'+
+  'Zum Cover: "ort" ist einer der neun Werte. "nacht" ist true, wenn die Geschichte nachts spielt. "figuren" nennt die wichtigsten Figuren, höchstens 6: die bekannten mit ihrem Schlüssel, neue Figuren als Objekt {"name":"Bananensaurus","form":"trex|langhals|drache|klein","farbe":"#rrggbb","akzent":"#rrggbb","beschreibung":"ein Satz, wie die Figur ist"} mit passender Farbe. Figuren aus Spielen, Filmen oder Serien zeichnest du als eigenen, neuen Dino in passender Farbe. "dinge" sind höchstens 2 aus: ei, schatz, diamant, kuerbis, rakete, stern (oder eine leere Liste).';
   return p;
 }
 function clean(out,req){
